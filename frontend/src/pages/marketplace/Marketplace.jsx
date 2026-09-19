@@ -3,9 +3,12 @@ import { Link } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import api from "../../api/axios";
 import { useLanguage } from "../../context/LanguageContext";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Marketplace() {
   const { t } = useLanguage();
+  const { user } = useAuth();
+  const canBuy = user?.role === "Citizen";
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(null);
@@ -56,12 +59,14 @@ export default function Marketplace() {
                 <p className="text-portal-text font-medium">{p.product_name}</p>
                 <p className="text-portal-muted text-sm mb-2">{p.business_name}</p>
                 <p className="text-portal-success font-semibold mb-3">Rs. {p.price}</p>
-                <button
-                  onClick={() => addToCart(p.product_id)}
-                  className="w-full bg-portal-primary hover:bg-portal-primary-hover text-white text-sm font-medium rounded-lg py-2"
-                >
-                  Add to Cart
-                </button>
+                {canBuy && (
+                  <button
+                    onClick={() => addToCart(p.product_id)}
+                    className="w-full bg-portal-primary hover:bg-portal-primary-hover text-white text-sm font-medium rounded-lg py-2"
+                  >
+                    Add to Cart
+                  </button>
+                )}
               </div>
             </div>
           ))}

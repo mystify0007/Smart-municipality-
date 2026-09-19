@@ -146,18 +146,18 @@ export default function App() {
             <ProtectedRoute allowedRoles={["Admin"]}><AdminProfile /></ProtectedRoute>
           } />
 
-          {/* Marketplace — shared between Citizen and Business (as buyer) */}
+          {/* Marketplace — Business can browse but not buy; cart/checkout is Citizen-only */}
           <Route path="/marketplace" element={
             <ProtectedRoute allowedRoles={["Citizen", "Business"]}><Marketplace /></ProtectedRoute>
           } />
           <Route path="/cart" element={
-            <ProtectedRoute allowedRoles={["Citizen", "Business"]}><Cart /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Citizen"]}><Cart /></ProtectedRoute>
           } />
           <Route path="/orders/mine" element={
-            <ProtectedRoute allowedRoles={["Citizen", "Business"]}><MyOrders /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Citizen"]}><MyOrders /></ProtectedRoute>
           } />
           <Route path="/payment/esewa/:orderId" element={
-            <ProtectedRoute allowedRoles={["Citizen", "Business"]}><EsewaPayment /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Citizen"]}><EsewaPayment /></ProtectedRoute>
           } />
 
           <Route path="*" element={<Navigate to="/login" replace />} />

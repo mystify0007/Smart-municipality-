@@ -24,8 +24,6 @@ const NAV_ITEMS = {
     { key: "nav.myProducts", path: "/business/products" },
     { key: "nav.orders", path: "/business/orders" },
     { key: "nav.marketplace", path: "/marketplace" },
-    { key: "nav.myCart", path: "/cart" },
-    { key: "nav.myOrders", path: "/orders/mine" },
   ],
   Officer: [
     { key: "nav.dashboard", path: "/officer/dashboard" },
