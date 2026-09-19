@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 
 import PreferenceToggles from "../components/PreferenceToggles";
+import heroMountains from "../assets/hero-mountains.jpg";
 
 const SERVICES = [
   {
@@ -118,20 +119,11 @@ export default function HomePage() {
       {/* Hero */}
       <section
         id="home"
-        className="relative px-6 py-20 bg-gradient-to-br from-[#0b1e3d] via-[#12294f] to-[#1c3a63] overflow-hidden"
+        className="relative px-6 py-20 bg-cover bg-center overflow-hidden"
+        style={{
+          backgroundImage: `linear-gradient(135deg, rgba(11, 30, 61, 0.88), rgba(18, 41, 79, 0.82), rgba(28, 58, 99, 0.78)), url(${heroMountains})`,
+        }}
       >
-        {/* Mountain silhouette */}
-        <svg
-          className="absolute bottom-0 left-0 w-full opacity-20"
-          viewBox="0 0 1200 200"
-          preserveAspectRatio="none"
-        >
-          <polygon
-            points="0,200 150,60 300,140 450,30 600,120 750,50 900,150 1050,70 1200,130 1200,200"
-            fill="white"
-          />
-        </svg>
-
         <div className="max-w-6xl mx-auto relative">
           <h1 className="text-4xl md:text-5xl font-bold max-w-2xl leading-tight">
             Welcome back to {t("app.name")}
