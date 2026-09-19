@@ -1,5 +1,6 @@
 // middleware/authMiddleware.js
 const jwt = require("jsonwebtoken");
+const { pool } = require("../config/db");
 
 function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -34,4 +35,38 @@ function requireRole(...allowedRoles) {
   };
 }
 
-module.exports = { verifyToken, requireRole };
+// requireApprovedOfficer — a JWT is only re-checked against the DB here,
+// not on every request in the app, because this is specifically the gate
+// that has to react immediately if an Admin suspends an Officer mid-session:
+// the officer_status isn't in the JWT, so a suspended officer's still-valid
+// token would otherwise keep working until it expires. Stack this AFTER
+// requireRole("Officer") on officer-only routes. Admin is never subject to
+// this check — it applies only when the caller's own role is Officer.
+async function requireApprovedOfficer(req, res, next) {
+  if (req.user.role !== "Officer") return next();
+
+  try {
+    const [rows] = await pool.query(
+      "SELECT officer_status, status FROM users WHERE user_id = ?",
+      [req.user.user_id]
+    );
+
+    if (rows.length === 0 || rows[0].status === "Blocked") {
+      return res.status(403).json({ success: false, error: "This account is no longer active." });
+    }
+
+    if (rows[0].officer_status !== "Approved") {
+      return res.status(403).json({
+        success: false,
+        error: "Your officer account is not currently approved. Contact the Admin.",
+      });
+    }
+
+    next();
+  } catch (err) {
+    console.error("requireApprovedOfficer error:", err);
+    res.status(500).json({ success: false, error: "Failed to verify officer status" });
+  }
+}
+
+module.exports = { verifyToken, requireRole, requireApprovedOfficer };

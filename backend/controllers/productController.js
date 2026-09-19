@@ -6,7 +6,8 @@
 //           price, stock, image, status ('Available'|'Out of Stock'), created_at
 const { pool } = require("../config/db");
 
-// GET /api/products — public browsing, optional ?category_id=
+// GET /api/products — public browsing, optional ?category_id=. Never
+// includes a product an Admin has removed for being inappropriate.
 async function getAllProducts(req, res) {
   try {
     const { category_id } = req.query;
@@ -16,11 +17,12 @@ async function getAllProducts(req, res) {
       FROM products p
       LEFT JOIN businesses b ON p.business_id = b.business_id
       LEFT JOIN categories c ON p.category_id = c.category_id
+      WHERE p.is_removed = 0
     `;
     const params = [];
 
     if (category_id) {
-      sql += " WHERE p.category_id = ?";
+      sql += " AND p.category_id = ?";
       params.push(category_id);
     }
 

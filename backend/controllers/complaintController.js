@@ -1,9 +1,11 @@
 // controllers/complaintController.js
-// complaints: complaint_id, user_id, subject, description, location,
-//             status ('Pending'|'In Progress'|'Resolved'), created_at, image
+// complaints: complaint_id, user_id, assigned_officer_id, subject, description,
+//             location, status ('Pending'|'In Progress'|'Resolved'|'Escalated'|'Closed'),
+//             escalated, closed_at, created_at, image, officer_response
 const { pool } = require("../config/db");
+const { createNotification } = require("./notificationController");
 
-const VALID_STATUSES = ["Pending", "In Progress", "Resolved"];
+const VALID_STATUSES = ["Pending", "In Progress", "Resolved", "Escalated", "Closed"];
 
 // POST /api/complaints — citizen submits a complaint
 async function submitComplaint(req, res) {
@@ -45,49 +47,189 @@ async function getMyComplaints(req, res) {
   }
 }
 
-// GET /api/officer/complaints — officer/admin views all complaints
-async function getAllComplaints(req, res) {
+// GET /api/officer/complaints — MY assigned complaints only
+async function getMyAssignedComplaints(req, res) {
   try {
     const [rows] = await pool.query(
       `SELECT c.*, u.full_name, u.email
        FROM complaints c
        JOIN users u ON c.user_id = u.user_id
-       ORDER BY c.created_at DESC`
+       WHERE c.assigned_officer_id = ?
+       ORDER BY c.created_at DESC`,
+      [req.user.user_id]
     );
     res.json({ success: true, complaints: rows });
   } catch (err) {
-    console.error("Get all complaints error:", err);
+    console.error("Get assigned complaints error:", err);
     res.status(500).json({ success: false, error: "Failed to fetch complaints" });
   }
 }
 
-// PATCH /api/officer/complaints/:id — officer updates complaint status
+// GET /api/admin/complaints?status=&officer_id=&escalated= — every complaint
+// system-wide, for Admin's Complaint Management screen.
+async function adminListComplaints(req, res) {
+  try {
+    const { status, officer_id, escalated } = req.query;
+
+    let sql = `
+      SELECT c.*, u.full_name AS citizen_name, u.email AS citizen_email,
+             o.full_name AS officer_name
+      FROM complaints c
+      JOIN users u ON c.user_id = u.user_id
+      LEFT JOIN users o ON c.assigned_officer_id = o.user_id
+    `;
+    const conditions = [];
+    const params = [];
+
+    if (status) { conditions.push("c.status = ?"); params.push(status); }
+    if (officer_id) { conditions.push("c.assigned_officer_id = ?"); params.push(officer_id); }
+    if (escalated !== undefined) { conditions.push("c.escalated = ?"); params.push(escalated === "true" ? 1 : 0); }
+
+    if (conditions.length > 0) sql += " WHERE " + conditions.join(" AND ");
+    sql += " ORDER BY c.created_at DESC";
+
+    const [rows] = await pool.query(sql, params);
+    res.json({ success: true, complaints: rows });
+  } catch (err) {
+    console.error("Admin list complaints error:", err);
+    res.status(500).json({ success: false, error: "Failed to fetch complaints" });
+  }
+}
+
+// PATCH /api/admin/complaints/:id/assign — body: { officer_id }
+async function assignComplaint(req, res) {
+  try {
+    const { id } = req.params;
+    const { officer_id } = req.body;
+
+    if (!officer_id) {
+      return res.status(400).json({ success: false, error: "officer_id is required" });
+    }
+
+    const [officerRows] = await pool.query(
+      "SELECT user_id, full_name FROM users WHERE user_id = ? AND role = 'Officer' AND officer_status = 'Approved'",
+      [officer_id]
+    );
+    if (officerRows.length === 0) {
+      return res.status(400).json({ success: false, error: "officer_id must be an approved Officer" });
+    }
+
+    const [existing] = await pool.query("SELECT * FROM complaints WHERE complaint_id = ?", [id]);
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, error: "Complaint not found" });
+    }
+
+    const nextStatus = existing[0].status === "Pending" ? "In Progress" : existing[0].status;
+
+    await pool.query(
+      "UPDATE complaints SET assigned_officer_id = ?, status = ? WHERE complaint_id = ?",
+      [officer_id, nextStatus, id]
+    );
+
+    await createNotification({
+      user_id: officer_id,
+      title: "New complaint assigned",
+      message: `You have been assigned complaint #${id}: "${existing[0].subject}".`,
+      related_type: "complaint",
+      related_id: id,
+    });
+
+    res.json({ success: true, message: `Complaint assigned to ${officerRows[0].full_name}` });
+  } catch (err) {
+    console.error("Assign complaint error:", err);
+    res.status(500).json({ success: false, error: "Failed to assign complaint" });
+  }
+}
+
+// PATCH /api/admin/complaints/:id/escalate
+async function escalateComplaint(req, res) {
+  try {
+    const { id } = req.params;
+    const [result] = await pool.query(
+      "UPDATE complaints SET status = 'Escalated', escalated = 1 WHERE complaint_id = ?",
+      [id]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, error: "Complaint not found" });
+    }
+    res.json({ success: true, message: "Complaint escalated" });
+  } catch (err) {
+    console.error("Escalate complaint error:", err);
+    res.status(500).json({ success: false, error: "Failed to escalate complaint" });
+  }
+}
+
+// PATCH /api/admin/complaints/:id/close
+async function closeComplaint(req, res) {
+  try {
+    const { id } = req.params;
+    const [result] = await pool.query(
+      "UPDATE complaints SET status = 'Closed', closed_at = NOW() WHERE complaint_id = ?",
+      [id]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, error: "Complaint not found" });
+    }
+    res.json({ success: true, message: "Complaint closed" });
+  } catch (err) {
+    console.error("Close complaint error:", err);
+    res.status(500).json({ success: false, error: "Failed to close complaint" });
+  }
+}
+
+// PATCH /api/officer/complaints/:id — officer updates status and/or writes a
+// response back to the citizen. Restricted to a complaint actually assigned
+// to that officer; Admin may update any complaint.
 async function updateComplaintStatus(req, res) {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, response } = req.body;
 
-    if (!status || !VALID_STATUSES.includes(status)) {
+    if (status && !VALID_STATUSES.includes(status)) {
       return res.status(400).json({
         success: false,
         error: `status must be one of: ${VALID_STATUSES.join(", ")}`,
       });
     }
 
-    const [result] = await pool.query(
-      "UPDATE complaints SET status = ? WHERE complaint_id = ?",
-      [status, id]
-    );
+    if (!status && response === undefined) {
+      return res.status(400).json({ success: false, error: "status or response is required" });
+    }
 
-    if (result.affectedRows === 0) {
+    const [existing] = await pool.query("SELECT * FROM complaints WHERE complaint_id = ?", [id]);
+    if (existing.length === 0) {
       return res.status(404).json({ success: false, error: "Complaint not found" });
     }
 
-    res.json({ success: true, message: `Complaint marked ${status}` });
+    if (req.user.role === "Officer" && existing[0].assigned_officer_id !== req.user.user_id) {
+      return res.status(403).json({ success: false, error: "This complaint is not assigned to you" });
+    }
+
+    const nextStatus = status || existing[0].status;
+    const closedAt = ["Resolved", "Closed"].includes(nextStatus) ? new Date() : existing[0].closed_at;
+
+    await pool.query(
+      "UPDATE complaints SET status = ?, officer_response = ?, closed_at = ? WHERE complaint_id = ?",
+      [nextStatus, response !== undefined ? response : existing[0].officer_response, closedAt, id]
+    );
+
+    await createNotification({
+      user_id: existing[0].user_id,
+      title: "Complaint update",
+      message: `Your complaint "${existing[0].subject}" is now "${nextStatus}".${response ? ` Officer response: ${response}` : ""}`,
+      related_type: "complaint",
+      related_id: id,
+    });
+
+    res.json({ success: true, message: "Complaint updated" });
   } catch (err) {
     console.error("Update complaint error:", err);
     res.status(500).json({ success: false, error: "Failed to update complaint" });
   }
 }
 
-module.exports = { submitComplaint, getMyComplaints, getAllComplaints, updateComplaintStatus };
+module.exports = {
+  submitComplaint, getMyComplaints, getMyAssignedComplaints,
+  adminListComplaints, assignComplaint, escalateComplaint, closeComplaint,
+  updateComplaintStatus,
+};
