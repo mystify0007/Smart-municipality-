@@ -55,7 +55,7 @@ export default function DashboardLayout({ children, title }) {
   const navItems = NAV_ITEMS[user?.role] || [];
 
   return (
-    <div className="min-h-screen bg-portal-bg flex">
+    <div className="min-h-screen portal-photo-bg flex">
       {/* Sidebar */}
       <aside className="w-60 bg-portal-panel border-r border-portal-panel-border flex flex-col shrink-0">
         <div className="px-5 py-6 border-b border-portal-panel-border">

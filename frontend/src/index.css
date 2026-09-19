@@ -37,3 +37,23 @@ body {
   color: var(--color-portal-text);
   transition: background-color 0.15s ease, color 0.15s ease;
 }
+
+/* Shared photo backdrop for the auth pages and every dashboard shell.
+   Dark theme dims it heavily to preserve the existing near-black surface;
+   light theme uses a lighter wash so panels/text stay legible. Purely
+   visual — no effect on the theme/language toggle logic. */
+.portal-photo-bg {
+  background-image:
+    linear-gradient(180deg, rgba(11, 17, 32, 0.88), rgba(11, 17, 32, 0.88)),
+    url("./assets/municipality-bg.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+:root[data-theme="light"] .portal-photo-bg {
+  background-image:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(248, 250, 252, 0.9)),
+    url("./assets/municipality-bg.jpg");
+}

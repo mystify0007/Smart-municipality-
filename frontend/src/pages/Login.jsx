@@ -37,7 +37,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-portal-bg flex flex-col items-center justify-center px-4 py-12 relative">
+    <div className="min-h-screen portal-photo-bg flex flex-col items-center justify-center px-4 py-12 relative">
       <PreferenceToggles className="absolute top-4 right-4" />
 
       <div className="flex flex-col items-center mb-8">

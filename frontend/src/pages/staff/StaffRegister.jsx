@@ -52,7 +52,7 @@ export default function StaffRegister() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0b1120] flex flex-col items-center justify-center px-4 py-12 relative">
+    <div className="min-h-screen portal-photo-bg flex flex-col items-center justify-center px-4 py-12 relative">
       <PreferenceToggles className="absolute top-4 right-4" />
 
       <div className="w-full max-w-md bg-[#101a30] border border-slate-700 rounded-xl p-8">

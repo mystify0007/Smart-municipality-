@@ -43,7 +43,7 @@ export default function Register() {
   const isBusiness = form.role === "Business";
 
   return (
-    <div className="min-h-screen bg-portal-bg flex flex-col items-center justify-center px-4 py-12 relative">
+    <div className="min-h-screen portal-photo-bg flex flex-col items-center justify-center px-4 py-12 relative">
       <PreferenceToggles className="absolute top-4 right-4" />
       <div className="w-full max-w-md bg-portal-panel border border-portal-panel-border rounded-xl p-8">
         <h2 className="text-lg font-medium text-portal-text text-center mb-1">{t("register.heading")}</h2>
