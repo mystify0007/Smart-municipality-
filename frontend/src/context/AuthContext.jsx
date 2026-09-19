@@ -1,63 +1,56 @@
-import { createContext, useContext, useState, useCallback } from 'react'
-import api from '../api/client'
+import { createContext, useContext, useState } from "react";
+import api from "../api/axios";
 
-const AuthContext = createContext(null)
-
-// Maps backend role strings -> dashboard route.
-// Adjust the keys here if your backend's role field uses different casing/values.
-export const ROLE_DASHBOARD = {
-  admin: '/admin',
-  officer: '/officer',
-  business: '/business',
-  citizen: '/citizen',
-}
+const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem('user')
-    return stored ? JSON.parse(stored) : null
-  })
-  const [token, setToken] = useState(() => localStorage.getItem('token'))
+    const stored = localStorage.getItem("user");
+    return stored ? JSON.parse(stored) : null;
+  });
 
-  const persistSession = (token, user) => {
-    localStorage.setItem('token', token)
-    localStorage.setItem('user', JSON.stringify(user))
-    setToken(token)
-    setUser(user)
+  async function login(email, password) {
+    const res = await api.post("/auth/login", { email, password });
+    const { token, user } = res.data;
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    setUser(user);
+    return user;
   }
 
-  const login = useCallback(async (email, password) => {
-    const { data } = await api.post('/auth/login', { email, password })
-    // Expecting { token, user: { role, ... } } — adjust field names to match
-    // the actual backend response shape once we verify it against the README.
-    const token = data.token
-    const user = data.user
-    persistSession(token, user)
-    return user
-  }, [])
+  // Same mechanism as login() above, just hitting the staff-only endpoint.
+  // Deliberately reuses the exact same React state update path (setUser)
+  // rather than a raw page reload, so the app picks up the new session
+  // the same reliable way the citizen/business login already does.
+  async function staffLogin(email, password) {
+    const res = await api.post("/auth/staff/login", { email, password });
+    const { token, user } = res.data;
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    setUser(user);
+    return user;
+  }
 
-  const register = useCallback(async (payload) => {
-    const { data } = await api.post('/auth/register', payload)
-    if (data.token && data.user) {
-      persistSession(data.token, data.user)
-    }
-    return data
-  }, [])
+  async function register(payload) {
+    const res = await api.post("/auth/register", payload);
+    return res.data;
+  }
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    setToken(null)
-    setUser(null)
-  }, [])
+  function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+  }
 
-  const value = { user, token, isAuthenticated: !!token, login, register, logout }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, login, staffLogin, register, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
-  return ctx
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  return ctx;
 }

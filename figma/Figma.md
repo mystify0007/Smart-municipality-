@@ -1,1 +1,0 @@
-https://www.figma.com/design/qgDkNp3w0fIjMQ8wf0gy9o/frontend?node-id=0-1&t=CvVObTaB6H59v1YB-1

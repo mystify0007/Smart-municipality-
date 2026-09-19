@@ -1,11 +1,39 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap');
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Dark theme (default) */
+@theme {
+  --color-portal-bg: #0b1120;
+  --color-portal-panel: #101a30;
+  --color-portal-panel-border: #1e293b;
+  --color-portal-text: #e2e8f0;
+  --color-portal-muted: #94a3b8;
+  --color-portal-primary: #3b82f6;
+  --color-portal-primary-hover: #2563eb;
+  --color-portal-accent: #f59e0b;
+  --color-portal-success: #22c55e;
+  --color-portal-danger: #ef4444;
+}
+
+/* Light theme overrides — applied when <html data-theme="light">.
+   Tailwind's utilities (bg-portal-bg, text-portal-text, etc.) compile down
+   to var(--color-portal-bg) etc., so redefining these custom properties
+   under a more specific selector is enough to re-theme the whole app
+   without touching a single className anywhere. */
+:root[data-theme="light"] {
+  --color-portal-bg: #f8fafc;
+  --color-portal-panel: #ffffff;
+  --color-portal-panel-border: #e2e8f0;
+  --color-portal-text: #0f172a;
+  --color-portal-muted: #64748b;
+  --color-portal-primary: #2563eb;
+  --color-portal-primary-hover: #1d4ed8;
+  --color-portal-accent: #d97706;
+  --color-portal-success: #16a34a;
+  --color-portal-danger: #dc2626;
+}
 
 body {
-  margin: 0;
-  font-family: 'Poppins', sans-serif;
-  background-color: #0b1326;
+  background-color: var(--color-portal-bg);
+  color: var(--color-portal-text);
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
