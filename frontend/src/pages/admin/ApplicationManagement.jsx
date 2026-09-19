@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/DashboardLayout";
-import api from "../../api/axios";
+import api, { resolveUploadUrl } from "../../api/axios";
 import { useLanguage } from "../../context/LanguageContext";
 
 const STATUS_FILTERS = ["All", "Pending", "Processing", "Approved", "Rejected", "Completed"];
@@ -110,7 +110,7 @@ export default function ApplicationManagement() {
                   <td className="py-3 text-portal-muted">{a.certificate_type}</td>
                   <td className="py-3">
                     {a.document_path ? (
-                      <a href={a.document_path} target="_blank" rel="noreferrer" className="text-xs text-portal-primary hover:underline">
+                      <a href={resolveUploadUrl(a.document_path)} target="_blank" rel="noreferrer" className="text-xs text-portal-primary hover:underline">
                         View
                       </a>
                     ) : (

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
-import api from "../../api/axios";
+import api, { resolveUploadUrl } from "../../api/axios";
 import { useLanguage } from "../../context/LanguageContext";
 import { useAuth } from "../../context/AuthContext";
 
@@ -53,7 +53,7 @@ export default function Marketplace() {
           {products.map((p) => (
             <div key={p.product_id} className="bg-portal-panel border border-portal-panel-border rounded-xl overflow-hidden">
               {p.image && (
-                <img src={p.image} alt={p.product_name} className="w-full h-40 object-cover" />
+                <img src={resolveUploadUrl(p.image)} alt={p.product_name} className="w-full h-40 object-cover" />
               )}
               <div className="p-4">
                 <p className="text-portal-text font-medium">{p.product_name}</p>

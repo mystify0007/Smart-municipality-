@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/DashboardLayout";
-import api from "../../api/axios";
+import api, { resolveUploadUrl } from "../../api/axios";
 import { useLanguage } from "../../context/LanguageContext";
 
 const STATUS_FILTERS = ["All", "Pending", "Approved", "Rejected", "Suspended"];
@@ -218,7 +218,7 @@ export default function OfficerVerification() {
                 {documents.map((d) => (
                   <li key={d.document_id}>
                     <a
-                      href={d.file_path} target="_blank" rel="noreferrer"
+                      href={resolveUploadUrl(d.file_path)} target="_blank" rel="noreferrer"
                       className="text-sm text-portal-primary hover:underline"
                     >
                       View document ({new Date(d.uploaded_at).toLocaleDateString()})

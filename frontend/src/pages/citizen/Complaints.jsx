@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/DashboardLayout";
-import api from "../../api/axios";
+import api, { resolveUploadUrl } from "../../api/axios";
 import { useLanguage } from "../../context/LanguageContext";
 
 export default function Complaints() {
@@ -121,9 +121,9 @@ export default function Complaints() {
                   <p className="text-portal-muted">{c.description}</p>
                   {c.image && (
                     isVideo(c.image) ? (
-                      <video src={c.image} controls className="mt-2 rounded-lg max-h-40" />
+                      <video src={resolveUploadUrl(c.image)} controls className="mt-2 rounded-lg max-h-40" />
                     ) : (
-                      <img src={c.image} alt="evidence" className="mt-2 rounded-lg max-h-40 object-cover" />
+                      <img src={resolveUploadUrl(c.image)} alt="evidence" className="mt-2 rounded-lg max-h-40 object-cover" />
                     )
                   )}
                   <div>

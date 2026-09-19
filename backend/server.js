@@ -25,7 +25,29 @@ const { verifyToken, requireRole } = require("./middleware/authMiddleware");
 const app = express();
 
 // --- Core middleware ---
-app.use(cors()); // dev: allow all; tighten to your deployed frontend origin in production
+// ALLOWED_ORIGINS is a comma-separated list (e.g. your Netlify URL). When
+// unset, allow any origin — convenient for local dev, but set it in any
+// real deployment.
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors(
+    allowedOrigins.length
+      ? {
+          origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+              callback(null, true);
+            } else {
+              callback(new Error(`Origin ${origin} not allowed by CORS`));
+            }
+          },
+        }
+      : undefined
+  )
+);
 app.use(express.json());
 
 // Serve uploaded files (certificate docs, product images) as static files

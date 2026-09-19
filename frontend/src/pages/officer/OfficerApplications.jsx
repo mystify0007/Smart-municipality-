@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/DashboardLayout";
-import api from "../../api/axios";
+import api, { resolveUploadUrl } from "../../api/axios";
 import { useLanguage } from "../../context/LanguageContext";
 
 const STATUS_OPTIONS = ["Pending", "Processing", "Approved", "Rejected", "Completed"];
@@ -119,7 +119,7 @@ export default function OfficerApplications() {
                   <div className="flex items-center gap-3 mt-3">
                     {item.document_path ? (
                       <a
-                        href={item.document_path} target="_blank" rel="noreferrer"
+                        href={resolveUploadUrl(item.document_path)} target="_blank" rel="noreferrer"
                         className="text-xs text-portal-primary hover:underline"
                       >
                         View Document
