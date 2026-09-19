@@ -50,6 +50,18 @@ export default function BusinessOrders() {
     }
   }
 
+  async function togglePaymentStatus(orderId, currentStatus) {
+    const nextStatus = currentStatus === "Paid" ? "Pending" : "Paid";
+    setMessage(null);
+    try {
+      await api.patch(`/orders/business/${orderId}/payment-status`, { payment_status: nextStatus });
+      setMessage({ type: "success", text: `Order #${orderId} payment marked ${nextStatus}` });
+      loadOrders();
+    } catch (err) {
+      setMessage({ type: "error", text: err.response?.data?.error || "Update failed" });
+    }
+  }
+
   return (
     <DashboardLayout title={t("title.incomingOrders")}>
       {error && <p className="text-portal-danger mb-4">{error}</p>}
@@ -109,6 +121,18 @@ export default function BusinessOrders() {
                         className="text-xs bg-portal-danger/15 text-portal-danger px-2.5 py-1 rounded-lg hover:bg-portal-danger/25"
                       >
                         Cancel
+                      </button>
+                    )}
+                    {o.payment_method === "COD" && (
+                      <button
+                        onClick={() => togglePaymentStatus(o.order_id, o.payment_status)}
+                        className={`text-xs px-2.5 py-1 rounded-lg ${
+                          o.payment_status === "Paid"
+                            ? "bg-portal-muted/15 text-portal-muted hover:bg-portal-muted/25"
+                            : "bg-portal-success/15 text-portal-success hover:bg-portal-success/25"
+                        }`}
+                      >
+                        {o.payment_status === "Paid" ? "Mark Unpaid" : "Mark Paid"}
                       </button>
                     )}
                   </td>

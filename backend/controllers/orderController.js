@@ -214,6 +214,52 @@ async function updateOrderStatus(req, res) {
   }
 }
 
+// PATCH /api/orders/business/:id/payment-status — COD only. There's no
+// rider/delivery step that confirms cash was collected, so the business
+// marks it manually once the buyer pays on delivery. eSewa orders are
+// confirmed automatically via confirmEsewaPayment and can't be toggled here.
+async function updatePaymentStatus(req, res) {
+  try {
+    const userId = req.user.user_id;
+    const { id } = req.params;
+    const { payment_status } = req.body;
+
+    if (!["Paid", "Pending"].includes(payment_status)) {
+      return res.status(400).json({ success: false, error: "payment_status must be Paid or Pending" });
+    }
+
+    const [businessRows] = await pool.query("SELECT business_id FROM businesses WHERE user_id = ?", [userId]);
+    if (businessRows.length === 0) {
+      return res.status(404).json({ success: false, error: "No business profile found for this account" });
+    }
+    const businessId = businessRows[0].business_id;
+
+    const [ownsOrder] = await pool.query(
+      `SELECT o.payment_method FROM orders o
+       JOIN order_items oi ON oi.order_id = o.order_id
+       JOIN products p ON oi.product_id = p.product_id
+       WHERE o.order_id = ? AND p.business_id = ?
+       LIMIT 1`,
+      [id, businessId]
+    );
+
+    if (ownsOrder.length === 0) {
+      return res.status(403).json({ success: false, error: "This order does not contain any of your products" });
+    }
+
+    if (ownsOrder[0].payment_method !== "COD") {
+      return res.status(400).json({ success: false, error: "Only Cash on Delivery orders can be marked here" });
+    }
+
+    await pool.query("UPDATE orders SET payment_status = ? WHERE order_id = ?", [payment_status, id]);
+
+    res.json({ success: true, message: `Payment marked ${payment_status}` });
+  } catch (err) {
+    console.error("Update payment status error:", err);
+    res.status(500).json({ success: false, error: "Failed to update payment status" });
+  }
+}
+
 module.exports = {
-  checkout, confirmEsewaPayment, getMyOrders, getBusinessOrders, updateOrderStatus,
+  checkout, confirmEsewaPayment, getMyOrders, getBusinessOrders, updateOrderStatus, updatePaymentStatus,
 };

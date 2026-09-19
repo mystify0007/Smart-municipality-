@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const {
-  checkout, confirmEsewaPayment, getMyOrders, getBusinessOrders, updateOrderStatus,
+  checkout, confirmEsewaPayment, getMyOrders, getBusinessOrders, updateOrderStatus, updatePaymentStatus,
 } = require("../controllers/orderController");
 const { verifyToken, requireRole } = require("../middleware/authMiddleware");
 
@@ -11,5 +11,6 @@ router.get("/mine", verifyToken, requireRole("Citizen", "Business"), getMyOrders
 
 router.get("/business", verifyToken, requireRole("Business"), getBusinessOrders);
 router.patch("/business/:id/status", verifyToken, requireRole("Business"), updateOrderStatus);
+router.patch("/business/:id/payment-status", verifyToken, requireRole("Business"), updatePaymentStatus);
 
 module.exports = router;
