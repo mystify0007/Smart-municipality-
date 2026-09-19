@@ -17,6 +17,8 @@ const complaintRoutes = require("./routes/complaintRoutes");
 const productRoutes = require("./routes/productRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const departmentRoutes = require("./routes/departmentRoutes");
 
 const { verifyToken, requireRole } = require("./middleware/authMiddleware");
 
@@ -66,6 +68,8 @@ app.use("/api/complaints", complaintRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/departments", departmentRoutes);
 
 // --- Middleware self-test routes (from Stage 3 lessons — safe to keep or delete) ---
 app.get("/api/test-protected", verifyToken, (req, res) => {

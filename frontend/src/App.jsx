@@ -23,13 +23,23 @@ import MyProducts from "./pages/business/MyProducts";
 import BusinessOrders from "./pages/business/BusinessOrders";
 
 import OfficerDashboard from "./pages/officer/OfficerDashboard";
+import OfficerApplications from "./pages/officer/OfficerApplications";
 import OfficerComplaints from "./pages/officer/OfficerComplaints";
 import OfficerReports from "./pages/officer/OfficerReports";
 import OfficerProfile from "./pages/officer/OfficerProfile";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminNotices from "./pages/admin/AdminNotices";
+import OfficerVerification from "./pages/admin/OfficerVerification";
+import CitizenManagement from "./pages/admin/CitizenManagement";
 import ApproveBusinesses from "./pages/admin/ApproveBusinesses";
+import MunicipalServices from "./pages/admin/MunicipalServices";
+import ApplicationManagement from "./pages/admin/ApplicationManagement";
+import ComplaintManagement from "./pages/admin/ComplaintManagement";
+import MarketplaceManagement from "./pages/admin/MarketplaceManagement";
+import AdminNotices from "./pages/admin/AdminNotices";
+import AdminReports from "./pages/admin/AdminReports";
+import SystemSettings from "./pages/admin/SystemSettings";
+import AdminProfile from "./pages/admin/AdminProfile";
 
 import Marketplace from "./pages/marketplace/Marketplace";
 import Cart from "./pages/marketplace/Cart";
@@ -85,8 +95,8 @@ export default function App() {
           <Route path="/officer/dashboard" element={
             <ProtectedRoute allowedRoles={["Officer"]}><OfficerDashboard /></ProtectedRoute>
           } />
-          <Route path="/officer/queue" element={
-            <ProtectedRoute allowedRoles={["Officer"]}><OfficerDashboard /></ProtectedRoute>
+          <Route path="/officer/applications" element={
+            <ProtectedRoute allowedRoles={["Officer"]}><OfficerApplications /></ProtectedRoute>
           } />
           <Route path="/officer/complaints" element={
             <ProtectedRoute allowedRoles={["Officer"]}><OfficerComplaints /></ProtectedRoute>
@@ -102,11 +112,38 @@ export default function App() {
           <Route path="/admin/dashboard" element={
             <ProtectedRoute allowedRoles={["Admin"]}><AdminDashboard /></ProtectedRoute>
           } />
-          <Route path="/admin/notices" element={
-            <ProtectedRoute allowedRoles={["Admin"]}><AdminNotices /></ProtectedRoute>
+          <Route path="/admin/officers" element={
+            <ProtectedRoute allowedRoles={["Admin"]}><OfficerVerification /></ProtectedRoute>
+          } />
+          <Route path="/admin/citizens" element={
+            <ProtectedRoute allowedRoles={["Admin"]}><CitizenManagement /></ProtectedRoute>
           } />
           <Route path="/admin/businesses" element={
             <ProtectedRoute allowedRoles={["Admin"]}><ApproveBusinesses /></ProtectedRoute>
+          } />
+          <Route path="/admin/services" element={
+            <ProtectedRoute allowedRoles={["Admin"]}><MunicipalServices /></ProtectedRoute>
+          } />
+          <Route path="/admin/applications" element={
+            <ProtectedRoute allowedRoles={["Admin"]}><ApplicationManagement /></ProtectedRoute>
+          } />
+          <Route path="/admin/complaints" element={
+            <ProtectedRoute allowedRoles={["Admin"]}><ComplaintManagement /></ProtectedRoute>
+          } />
+          <Route path="/admin/marketplace" element={
+            <ProtectedRoute allowedRoles={["Admin"]}><MarketplaceManagement /></ProtectedRoute>
+          } />
+          <Route path="/admin/notices" element={
+            <ProtectedRoute allowedRoles={["Admin"]}><AdminNotices /></ProtectedRoute>
+          } />
+          <Route path="/admin/reports" element={
+            <ProtectedRoute allowedRoles={["Admin"]}><AdminReports /></ProtectedRoute>
+          } />
+          <Route path="/admin/settings" element={
+            <ProtectedRoute allowedRoles={["Admin"]}><SystemSettings /></ProtectedRoute>
+          } />
+          <Route path="/admin/profile" element={
+            <ProtectedRoute allowedRoles={["Admin"]}><AdminProfile /></ProtectedRoute>
           } />
 
           {/* Marketplace — shared between Citizen and Business (as buyer) */}

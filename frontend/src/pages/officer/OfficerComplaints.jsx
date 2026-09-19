@@ -9,7 +9,14 @@ const STATUS_STYLES = {
   Pending: "bg-portal-accent/15 text-portal-accent",
   "In Progress": "bg-portal-primary/15 text-portal-primary",
   Resolved: "bg-portal-success/15 text-portal-success",
+  Escalated: "bg-portal-danger/15 text-portal-danger",
+  Closed: "bg-portal-muted/15 text-portal-muted",
 };
+
+// Escalation and closing are Admin-only actions (see ComplaintManagement.jsx
+// on the admin side) — once a complaint reaches either state, the officer's
+// own status control is locked so they can't quietly revert it.
+const LOCKED_STATUSES = ["Escalated", "Closed"];
 
 function isVideo(path) {
   return /\.(mp4|webm|mov)$/i.test(path || "");
@@ -84,6 +91,7 @@ export default function OfficerComplaints() {
           <div className="space-y-4">
             {complaints.map((c) => {
               const draft = draftFor(c);
+              const locked = LOCKED_STATUSES.includes(c.status);
               return (
                 <div key={c.complaint_id} className="border border-portal-panel-border/60 rounded-lg p-4">
                   <div className="flex items-start justify-between gap-4">
@@ -107,30 +115,36 @@ export default function OfficerComplaints() {
                     )
                   )}
 
-                  <div className="mt-3 grid grid-cols-[160px_1fr_auto] gap-3 items-start">
-                    <select
-                      value={draft.status}
-                      onChange={(e) => updateDraft(c, { status: e.target.value })}
-                      className="text-sm rounded-lg bg-[#0b1120] border border-portal-panel-border px-2.5 py-2 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
-                    >
-                      {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="text"
-                      placeholder="Response to citizen (optional)"
-                      value={draft.response}
-                      onChange={(e) => updateDraft(c, { response: e.target.value })}
-                      className="text-sm rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
-                    />
-                    <button
-                      onClick={() => handleSave(c)}
-                      className="text-sm bg-portal-primary hover:bg-portal-primary-hover text-white font-medium rounded-lg px-4 py-2"
-                    >
-                      Save
-                    </button>
-                  </div>
+                  {locked ? (
+                    <p className="text-xs text-portal-muted mt-3">
+                      This complaint has been {c.status.toLowerCase()} by the Admin and can no longer be updated here.
+                    </p>
+                  ) : (
+                    <div className="mt-3 grid grid-cols-[160px_1fr_auto] gap-3 items-start">
+                      <select
+                        value={draft.status}
+                        onChange={(e) => updateDraft(c, { status: e.target.value })}
+                        className="text-sm rounded-lg bg-[#0b1120] border border-portal-panel-border px-2.5 py-2 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                      >
+                        {STATUS_OPTIONS.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="Response to citizen (optional)"
+                        value={draft.response}
+                        onChange={(e) => updateDraft(c, { response: e.target.value })}
+                        className="text-sm rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                      />
+                      <button
+                        onClick={() => handleSave(c)}
+                        className="text-sm bg-portal-primary hover:bg-portal-primary-hover text-white font-medium rounded-lg px-4 py-2"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}

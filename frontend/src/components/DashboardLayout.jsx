@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import PreferenceToggles from "./PreferenceToggles";
+import NotificationBell from "./NotificationBell";
 
 // Nav items reference translation keys (translationKey), not literal text,
 // so the sidebar relabels itself instantly when the language toggle is used.
@@ -28,14 +29,24 @@ const NAV_ITEMS = {
   ],
   Officer: [
     { key: "nav.dashboard", path: "/officer/dashboard" },
-    { key: "nav.complaints", path: "/officer/complaints" },
+    { key: "nav.myApplications", path: "/officer/applications" },
+    { key: "nav.myComplaints", path: "/officer/complaints" },
     { key: "nav.reports", path: "/officer/reports" },
     { key: "nav.profile", path: "/officer/profile" },
   ],
   Admin: [
     { key: "nav.dashboard", path: "/admin/dashboard" },
+    { key: "nav.officerVerification", path: "/admin/officers" },
+    { key: "nav.citizenManagement", path: "/admin/citizens" },
     { key: "nav.businessApprovals", path: "/admin/businesses" },
-    { key: "nav.notices", path: "/admin/notices" },
+    { key: "nav.municipalServices", path: "/admin/services" },
+    { key: "nav.applicationManagement", path: "/admin/applications" },
+    { key: "nav.complaintManagement", path: "/admin/complaints" },
+    { key: "nav.marketplaceManagement", path: "/admin/marketplace" },
+    { key: "nav.announcements", path: "/admin/notices" },
+    { key: "nav.reports", path: "/admin/reports" },
+    { key: "nav.systemSettings", path: "/admin/settings" },
+    { key: "nav.profile", path: "/admin/profile" },
   ],
 };
 
@@ -88,6 +99,7 @@ export default function DashboardLayout({ children, title }) {
         <header className="h-16 border-b border-portal-panel-border flex items-center justify-between px-8">
           <h1 className="text-lg font-semibold text-portal-text">{title}</h1>
           <div className="flex items-center gap-4">
+            <NotificationBell />
             <PreferenceToggles />
             <span className="text-sm text-portal-muted">{user?.full_name}</span>
           </div>

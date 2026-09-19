@@ -61,4 +61,13 @@ const uploadComplaintMedia = multer({
   limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
 });
 
-module.exports = { uploadCertificateDoc, uploadProductImage, uploadComplaintMedia };
+// Officer registration: identification/qualification documents, up to 5 files.
+const uploadOfficerDocs = multer({
+  storage: makeStorage("officers"),
+  fileFilter: makeFileFilter(IMAGE_MIME_TYPES),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+module.exports = {
+  uploadCertificateDoc, uploadProductImage, uploadComplaintMedia, uploadOfficerDocs,
+};
