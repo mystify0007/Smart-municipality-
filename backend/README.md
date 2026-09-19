@@ -41,11 +41,14 @@ Requires XAMPP's MySQL running, `.env` credentials matching your setup.
 | GET | /api/citizen/stats | Citizen | My request counts by status |
 | GET | /api/citizen/tax-payments | Citizen | My tax payment history |
 | POST | /api/certificates/apply | Citizen, Business | multipart, field `document`. Body: `certificate_type`, `purpose` |
-| GET | /api/officer/queue | Officer, Admin | All applications, joined with citizen info |
+| GET | /api/officer/queue | Officer, Admin | All applications, joined with citizen info + uploaded document path |
 | GET | /api/officer/stats | Officer, Admin | Counts by status |
 | PATCH | /api/officer/applications/:id | Officer, Admin | Body: `status` (Approved/Rejected), optional `remarks` |
 | GET | /api/officer/complaints | Officer, Admin | All complaints |
-| PATCH | /api/officer/complaints/:id | Officer, Admin | Body: `status` (Pending/In Progress/Resolved) |
+| PATCH | /api/officer/complaints/:id | Officer, Admin | Body: optional `status` (Pending/In Progress/Resolved), optional `response` (message back to the citizen) — at least one required |
+| GET | /api/officer/profile | Officer, Admin | My own account details |
+| PATCH | /api/officer/profile | Officer, Admin | Body: optional `phone`, `address` |
+| GET | /api/officer/reports | Officer, Admin | Certificate counts by type/status + complaint counts by status |
 | GET | /api/admin/stats | Admin | Totals + pending business count |
 | GET | /api/admin/businesses | Admin | List businesses, `?status=Pending` to filter |
 | PATCH | /api/admin/businesses/:id | Admin | Body: `status` (Approved/Rejected/Pending) |

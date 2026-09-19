@@ -1,6 +1,7 @@
 // controllers/complaintController.js
 // complaints: complaint_id, user_id, subject, description, location,
-//             status ('Pending'|'In Progress'|'Resolved'), created_at, image
+//             status ('Pending'|'In Progress'|'Resolved'), created_at, image,
+//             officer_response
 const { pool } = require("../config/db");
 
 const VALID_STATUSES = ["Pending", "In Progress", "Resolved"];
@@ -61,29 +62,39 @@ async function getAllComplaints(req, res) {
   }
 }
 
-// PATCH /api/officer/complaints/:id — officer updates complaint status
+// PATCH /api/officer/complaints/:id — officer updates status and/or writes
+// a response back to the citizen. Either field alone is enough.
 async function updateComplaintStatus(req, res) {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, response } = req.body;
 
-    if (!status || !VALID_STATUSES.includes(status)) {
+    if (status && !VALID_STATUSES.includes(status)) {
       return res.status(400).json({
         success: false,
         error: `status must be one of: ${VALID_STATUSES.join(", ")}`,
       });
     }
 
-    const [result] = await pool.query(
-      "UPDATE complaints SET status = ? WHERE complaint_id = ?",
-      [status, id]
-    );
+    if (!status && response === undefined) {
+      return res.status(400).json({ success: false, error: "status or response is required" });
+    }
 
-    if (result.affectedRows === 0) {
+    const [existing] = await pool.query("SELECT * FROM complaints WHERE complaint_id = ?", [id]);
+    if (existing.length === 0) {
       return res.status(404).json({ success: false, error: "Complaint not found" });
     }
 
-    res.json({ success: true, message: `Complaint marked ${status}` });
+    await pool.query(
+      "UPDATE complaints SET status = ?, officer_response = ? WHERE complaint_id = ?",
+      [
+        status || existing[0].status,
+        response !== undefined ? response : existing[0].officer_response,
+        id,
+      ]
+    );
+
+    res.json({ success: true, message: "Complaint updated" });
   } catch (err) {
     console.error("Update complaint error:", err);
     res.status(500).json({ success: false, error: "Failed to update complaint" });

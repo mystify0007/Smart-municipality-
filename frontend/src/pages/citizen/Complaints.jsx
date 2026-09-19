@@ -126,7 +126,14 @@ export default function Complaints() {
                       <img src={c.image} alt="evidence" className="mt-2 rounded-lg max-h-40 object-cover" />
                     )
                   )}
-                  <span className="text-xs text-portal-accent">{c.status}</span>
+                  <div>
+                    <span className="text-xs text-portal-accent">{c.status}</span>
+                  </div>
+                  {c.officer_response && (
+                    <p className="text-xs text-portal-muted mt-1">
+                      <span className="text-portal-text">Officer response:</span> {c.officer_response}
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>

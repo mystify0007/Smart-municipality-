@@ -28,6 +28,9 @@ const NAV_ITEMS = {
   ],
   Officer: [
     { key: "nav.dashboard", path: "/officer/dashboard" },
+    { key: "nav.complaints", path: "/officer/complaints" },
+    { key: "nav.reports", path: "/officer/reports" },
+    { key: "nav.profile", path: "/officer/profile" },
   ],
   Admin: [
     { key: "nav.dashboard", path: "/admin/dashboard" },

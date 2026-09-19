@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const { getQueue, getOfficerStats, updateApplication } = require("../controllers/officerController");
+const {
+  getQueue, getOfficerStats, updateApplication,
+  getProfile, updateProfile, getReports,
+} = require("../controllers/officerController");
 const { getAllComplaints, updateComplaintStatus } = require("../controllers/complaintController");
 const { verifyToken, requireRole } = require("../middleware/authMiddleware");
 
@@ -10,5 +13,10 @@ router.patch("/applications/:id", verifyToken, requireRole("Officer", "Admin"), 
 
 router.get("/complaints", verifyToken, requireRole("Officer", "Admin"), getAllComplaints);
 router.patch("/complaints/:id", verifyToken, requireRole("Officer", "Admin"), updateComplaintStatus);
+
+router.get("/profile", verifyToken, requireRole("Officer", "Admin"), getProfile);
+router.patch("/profile", verifyToken, requireRole("Officer", "Admin"), updateProfile);
+
+router.get("/reports", verifyToken, requireRole("Officer", "Admin"), getReports);
 
 module.exports = router;

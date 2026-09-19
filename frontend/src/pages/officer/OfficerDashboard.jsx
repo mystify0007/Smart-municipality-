@@ -15,6 +15,7 @@ export default function OfficerDashboard() {
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState(null);
+  const [remarksById, setRemarksById] = useState({});
 
   async function loadData() {
     try {
@@ -34,8 +35,12 @@ export default function OfficerDashboard() {
   async function handleDecision(certificateId, status) {
     setActionMessage(null);
     try {
-      await api.patch(`/officer/applications/${certificateId}`, { status });
+      await api.patch(`/officer/applications/${certificateId}`, {
+        status,
+        remarks: remarksById[certificateId] || undefined,
+      });
       setActionMessage({ type: "success", text: `Application ${status.toLowerCase()}.` });
+      setRemarksById((prev) => ({ ...prev, [certificateId]: "" }));
       loadData();
     } catch (err) {
       setActionMessage({ type: "error", text: err.response?.data?.error || "Update failed" });
@@ -79,6 +84,7 @@ export default function OfficerDashboard() {
                 <th className="pb-2 font-normal">Citizen</th>
                 <th className="pb-2 font-normal">Service Type</th>
                 <th className="pb-2 font-normal">Date</th>
+                <th className="pb-2 font-normal">Document</th>
                 <th className="pb-2 font-normal">Status</th>
                 <th className="pb-2 font-normal">Actions</th>
               </tr>
@@ -87,17 +93,45 @@ export default function OfficerDashboard() {
               {queue.map((item) => (
                 <tr key={item.certificate_id} className="border-b border-portal-panel-border/50">
                   <td className="py-3 text-portal-text">REQ-{String(item.certificate_id).padStart(4, "0")}</td>
-                  <td className="py-3 text-portal-text">{item.full_name}</td>
+                  <td className="py-3 text-portal-text">
+                    {item.full_name}
+                    {item.citizenship_no && (
+                      <p className="text-xs text-portal-muted">ID: {item.citizenship_no}</p>
+                    )}
+                  </td>
                   <td className="py-3 text-portal-text">{item.certificate_type}</td>
                   <td className="py-3 text-portal-muted">{new Date(item.applied_date).toLocaleDateString()}</td>
+                  <td className="py-3">
+                    {item.document_path ? (
+                      <a
+                        href={item.document_path}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-portal-primary hover:underline"
+                      >
+                        View
+                      </a>
+                    ) : (
+                      <span className="text-xs text-portal-muted">—</span>
+                    )}
+                  </td>
                   <td className="py-3">
                     <span className={`px-2.5 py-1 rounded-full text-xs ${STATUS_STYLES[item.status] || ""}`}>
                       {item.status}
                     </span>
                   </td>
-                  <td className="py-3 space-x-2">
+                  <td className="py-3">
                     {item.status === "Pending" && (
-                      <>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          placeholder="Remarks (optional)"
+                          value={remarksById[item.certificate_id] || ""}
+                          onChange={(e) =>
+                            setRemarksById((prev) => ({ ...prev, [item.certificate_id]: e.target.value }))
+                          }
+                          className="text-xs rounded-lg bg-[#0b1120] border border-portal-panel-border px-2 py-1.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary w-32"
+                        />
                         <button
                           onClick={() => handleDecision(item.certificate_id, "Approved")}
                           className="text-xs bg-portal-success/15 text-portal-success px-2.5 py-1 rounded-lg hover:bg-portal-success/25"
@@ -110,7 +144,7 @@ export default function OfficerDashboard() {
                         >
                           Reject
                         </button>
-                      </>
+                      </div>
                     )}
                   </td>
                 </tr>

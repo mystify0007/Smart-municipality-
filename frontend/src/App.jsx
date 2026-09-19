@@ -23,6 +23,9 @@ import MyProducts from "./pages/business/MyProducts";
 import BusinessOrders from "./pages/business/BusinessOrders";
 
 import OfficerDashboard from "./pages/officer/OfficerDashboard";
+import OfficerComplaints from "./pages/officer/OfficerComplaints";
+import OfficerReports from "./pages/officer/OfficerReports";
+import OfficerProfile from "./pages/officer/OfficerProfile";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminNotices from "./pages/admin/AdminNotices";
@@ -84,6 +87,15 @@ export default function App() {
           } />
           <Route path="/officer/queue" element={
             <ProtectedRoute allowedRoles={["Officer"]}><OfficerDashboard /></ProtectedRoute>
+          } />
+          <Route path="/officer/complaints" element={
+            <ProtectedRoute allowedRoles={["Officer"]}><OfficerComplaints /></ProtectedRoute>
+          } />
+          <Route path="/officer/reports" element={
+            <ProtectedRoute allowedRoles={["Officer"]}><OfficerReports /></ProtectedRoute>
+          } />
+          <Route path="/officer/profile" element={
+            <ProtectedRoute allowedRoles={["Officer"]}><OfficerProfile /></ProtectedRoute>
           } />
 
           {/* Admin */}

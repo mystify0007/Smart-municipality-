@@ -29,6 +29,8 @@ export const translations = {
     "nav.orders": "Orders",
     "nav.businessApprovals": "Business Approvals",
     "nav.notices": "Notices",
+    "nav.reports": "Reports",
+    "nav.profile": "Profile",
 
     // Page titles
     "title.citizenDashboard": "Citizen Dashboard",
@@ -40,6 +42,9 @@ export const translations = {
     "title.myProducts": "My Products",
     "title.incomingOrders": "Incoming Orders",
     "title.officerDashboard": "Officer Dashboard",
+    "title.officerComplaints": "Manage Complaints",
+    "title.officerReports": "Service Reports",
+    "title.officerProfile": "My Profile",
     "title.adminOverview": "Admin Overview",
     "title.businessApprovals": "Business Approvals",
     "title.notices": "Notices",
@@ -94,6 +99,8 @@ export const translations = {
     "nav.orders": "अर्डरहरू",
     "nav.businessApprovals": "व्यवसाय स्वीकृति",
     "nav.notices": "सूचनाहरू",
+    "nav.reports": "प्रतिवेदनहरू",
+    "nav.profile": "प्रोफाइल",
 
     "title.citizenDashboard": "नागरिक ड्यासबोर्ड",
     "title.myRequests": "मेरो अनुरोधहरू",
@@ -104,6 +111,9 @@ export const translations = {
     "title.myProducts": "मेरा उत्पादनहरू",
     "title.incomingOrders": "आउने अर्डरहरू",
     "title.officerDashboard": "अधिकृत ड्यासबोर्ड",
+    "title.officerComplaints": "गुनासो व्यवस्थापन",
+    "title.officerReports": "सेवा प्रतिवेदन",
+    "title.officerProfile": "मेरो प्रोफाइल",
     "title.adminOverview": "प्रशासक विवरण",
     "title.businessApprovals": "व्यवसाय स्वीकृति",
     "title.notices": "सूचनाहरू",
