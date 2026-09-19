@@ -62,6 +62,8 @@ export default function OfficerProfile() {
     <DashboardLayout title={t("title.officerProfile")}>
       {loading ? (
         <p className="text-portal-muted text-sm">Loading...</p>
+      ) : !profile ? (
+        <p className="text-portal-muted text-sm">Failed to load profile.</p>
       ) : (
         <div className="grid grid-cols-2 gap-6 max-w-3xl">
           <div className="bg-portal-panel border border-portal-panel-border rounded-xl p-6">

@@ -39,6 +39,8 @@ export default function AdminDashboard() {
       {error && <p className="text-portal-danger mb-4">{error}</p>}
       {loading ? (
         <p className="text-portal-muted text-sm">Loading...</p>
+      ) : !stats ? (
+        <p className="text-portal-muted text-sm">No dashboard data available.</p>
       ) : (
         <>
           <div className="grid grid-cols-4 gap-4 mb-6">
