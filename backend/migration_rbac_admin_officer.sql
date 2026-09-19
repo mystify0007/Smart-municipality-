@@ -136,32 +136,10 @@ ON DUPLICATE KEY UPDATE setting_key = setting_key;
 
 -- ---------------------------------------------------------------------------
 -- 9. DB-level single-Admin enforcement (defense in depth alongside the
---    application-layer check in authController.js). Blocks ANY insert or
---    role-change that would create a second Admin row.
---
---    NOTE: phpMyAdmin's SQL tab supports the DELIMITER command below. If
---    your phpMyAdmin version rejects it, create these two triggers instead
---    via the Triggers tab under the `users` table, pasting just the body
---    between BEGIN/END for each.
+--    application-layer check in authController.js) lives in its own file:
+--    migration_single_admin_trigger.sql — kept separate because phpMyAdmin's
+--    SQL tab handling of DELIMITER-based CREATE TRIGGER statements is
+--    unreliable across versions/MariaDB, and a failure there should never
+--    block the rest of this migration (everything above this line is plain
+--    single-statement SQL and always safe to run as one script).
 -- ---------------------------------------------------------------------------
-DELIMITER $$
-
-CREATE TRIGGER trg_single_admin_insert
-BEFORE INSERT ON users
-FOR EACH ROW
-BEGIN
-  IF NEW.role = 'Admin' AND (SELECT COUNT(*) FROM users WHERE role = 'Admin') >= 1 THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Only one Admin account is allowed in the system.';
-  END IF;
-END$$
-
-CREATE TRIGGER trg_single_admin_update
-BEFORE UPDATE ON users
-FOR EACH ROW
-BEGIN
-  IF NEW.role = 'Admin' AND OLD.role <> 'Admin' AND (SELECT COUNT(*) FROM users WHERE role = 'Admin') >= 1 THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Only one Admin account is allowed in the system.';
-  END IF;
-END$$
-
-DELIMITER ;

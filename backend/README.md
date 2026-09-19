@@ -9,9 +9,14 @@ Run these once in phpMyAdmin (Database: smart_municipality_portal → SQL tab), 
 2. `migration_add_officer_response.sql`
 3. `migration_rbac_admin_officer.sql` — required for everything described below
    (Officer verification, application/complaint assignment, departments,
-   municipal services, notifications, system settings, single-Admin
-   enforcement). See the comments inside that file for the phpMyAdmin
-   `DELIMITER` note on the two triggers at the bottom.
+   municipal services, notifications, system settings). Plain single-statement
+   SQL, safe to paste as one script.
+4. `migration_single_admin_trigger.sql` — **optional** extra protection
+   against a second Admin account, at the database level. Read the comments
+   at the top of that file before running it: it needs phpMyAdmin's
+   **Triggers UI**, not the SQL tab (pasting it as a script will throw a
+   syntax error on most phpMyAdmin/MariaDB setups). The app already enforces
+   a single Admin in code without this.
 
 ## ⚠️ Known accounts that won't log in
 
