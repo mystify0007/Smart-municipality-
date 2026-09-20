@@ -1,11 +1,65 @@
 // controllers/officerVerificationController.js
-// Admin-only: verify, approve, reject, suspend, and reactivate Officer
-// accounts. This is the ONLY place officer_status ever changes — the
-// Officer role itself has no way to approve or affect its own verification.
+// Admin-only: create, suspend, and reactivate Officer accounts. This is the
+// ONLY place officer_status ever changes — the Officer role itself has no
+// way to affect its own verification, and there is no public Officer
+// registration: an Officer is only ever created by its Municipality Admin,
+// exactly like each Admin scope is only ever created by the scope above it.
+const bcrypt = require("bcrypt");
 const { pool } = require("../config/db");
 const { createNotification } = require("./notificationController");
 
 const OFFICER_STATUSES = ["Pending", "Approved", "Rejected", "Suspended"];
+const SALT_ROUNDS = 10;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// POST /api/admin/officers — the Municipality Admin creates the account
+// directly, so it starts life Approved (the Admin creating it IS the
+// vetting) instead of in a Pending queue waiting on a separate review step.
+async function createOfficer(req, res) {
+  try {
+    const { full_name, email, phone, password, address, department, designation } = req.body;
+
+    if (!full_name || !email || !password || !department || !designation) {
+      return res.status(400).json({
+        success: false,
+        error: "full_name, email, password, department, and designation are required",
+      });
+    }
+
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, error: "Invalid email format" });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
+    }
+
+    const [existing] = await pool.query("SELECT user_id FROM users WHERE email = ?", [email]);
+    if (existing.length > 0) {
+      return res.status(409).json({ success: false, error: "Email is already registered" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+    const [result] = await pool.query(
+      `INSERT INTO users (full_name, email, phone, password, role, municipality_id, address, department, designation, officer_status, verified_by, verified_at)
+       VALUES (?, ?, ?, ?, 'Officer', ?, ?, ?, ?, 'Approved', ?, NOW())`,
+      [full_name, email, phone || null, hashedPassword, req.user.municipality_id, address || null, department, designation, req.user.user_id]
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Officer account created.",
+      officer: {
+        user_id: result.insertId, full_name, email, department, designation,
+        officer_status: "Approved", municipality_id: req.user.municipality_id,
+      },
+    });
+  } catch (err) {
+    console.error("Create officer error:", err);
+    return res.status(500).json({ success: false, error: "Failed to create officer account" });
+  }
+}
 
 // GET /api/admin/officers?status=Pending — list Officer accounts in the
 // Admin's own Municipality, optionally filtered by verification status. Each
@@ -215,5 +269,5 @@ async function activateOfficer(req, res) {
 }
 
 module.exports = {
-  listOfficers, getOfficerDetail, approveOfficer, rejectOfficer, suspendOfficer, activateOfficer,
+  createOfficer, listOfficers, getOfficerDetail, approveOfficer, rejectOfficer, suspendOfficer, activateOfficer,
 };

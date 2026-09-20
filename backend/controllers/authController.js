@@ -233,83 +233,11 @@ async function login(req, res) {
 }
 
 // ---------------------------------------------------------------------------
-// STAFF PORTAL — Officer register (Admin can never register here); both
-// Officer and Admin log in here.
+// STAFF PORTAL — Officer and Admin both log in here. Neither ever
+// self-registers: an Officer account is only ever created by its
+// Municipality Admin (see officerVerificationController.createOfficer),
+// exactly like each Admin scope is only ever created by the scope above it.
 // ---------------------------------------------------------------------------
-
-async function staffRegister(req, res) {
-  const connection = await pool.getConnection();
-  try {
-    const {
-      full_name, email, phone, password, address, department, designation, municipality_id,
-    } = req.body;
-
-    // Note there is no `role` field read from the request body at all —
-    // this endpoint can only ever create an Officer. That is what keeps a
-    // normal user from registering as, or selecting, Admin.
-    if (!full_name || !email || !password || !department || !designation || !municipality_id) {
-      connection.release();
-      return res.status(400).json({
-        success: false,
-        error: "full_name, email, password, department, designation, and municipality_id are required",
-      });
-    }
-
-    if (!emailRegex.test(email)) {
-      connection.release();
-      return res.status(400).json({ success: false, error: "Invalid email format" });
-    }
-
-    if (password.length < 6) {
-      connection.release();
-      return res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
-    }
-
-    if (!(await municipalityExists(municipality_id))) {
-      connection.release();
-      return res.status(400).json({ success: false, error: "Selected municipality does not exist" });
-    }
-
-    const [existing] = await connection.query("SELECT user_id FROM users WHERE email = ?", [email]);
-    if (existing.length > 0) {
-      connection.release();
-      return res.status(409).json({ success: false, error: "Email is already registered" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-
-    await connection.beginTransaction();
-
-    const [result] = await connection.query(
-      `INSERT INTO users (full_name, email, phone, password, role, municipality_id, address, department, designation, officer_status)
-       VALUES (?, ?, ?, ?, 'Officer', ?, ?, ?, ?, 'Pending')`,
-      [full_name, email, phone || null, hashedPassword, municipality_id, address || null, department, designation]
-    );
-    const userId = result.insertId;
-
-    const files = req.files || [];
-    for (const file of files) {
-      await connection.query(
-        "INSERT INTO officer_documents (user_id, file_path) VALUES (?, ?)",
-        [userId, `/uploads/officers/${file.filename}`]
-      );
-    }
-
-    await connection.commit();
-
-    return res.status(201).json({
-      success: true,
-      message: "Registration submitted. Your officer account is pending Admin verification — you'll be notified once it's reviewed.",
-      user: { user_id: userId, full_name, email, role: "Officer", municipality_id, officer_status: "Pending" },
-    });
-  } catch (err) {
-    await connection.rollback();
-    console.error("Staff register error:", err);
-    return res.status(500).json({ success: false, error: "Registration failed" });
-  } finally {
-    connection.release();
-  }
-}
 
 async function staffLogin(req, res) {
   try {
@@ -716,7 +644,7 @@ async function changePassword(req, res) {
 }
 
 module.exports = {
-  register, login, staffRegister, staffLogin,
+  register, login, staffLogin,
   adminBootstrap, createProvinceAdmin, updateProvinceAdminStatus,
   createMunicipalityAdmin, changePassword,
 };

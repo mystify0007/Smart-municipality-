@@ -9,8 +9,7 @@ import PreferenceToggles from "./PreferenceToggles";
 // four — but the layout, submit flow, and wrong-account handling are
 // identical across all four, so that part lives here once.
 export default function StaffLoginForm({
-  heading, subheading, expectedRole, expectedAdminScope, redirectPath,
-  showOfficerRegisterLink, wrongPortalHint,
+  heading, subheading, expectedRole, expectedAdminScope, redirectPath, wrongPortalHint,
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -95,13 +94,6 @@ export default function StaffLoginForm({
         </form>
 
         <div className="mt-6 text-center space-y-1">
-          {showOfficerRegisterLink && (
-            <p>
-              <a href="/staff/register" className="text-sm text-blue-400 hover:underline">
-                Register a new staff account
-              </a>
-            </p>
-          )}
           <p>
             <a href="/portals" className="text-sm text-slate-500 hover:underline">
               ← Choose a different portal

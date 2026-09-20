@@ -9,7 +9,6 @@ import Register from "./pages/Register";
 import HomePage from "./pages/HomePage";
 import PublicNotices from "./pages/PublicNotices";
 import PortalChooser from "./pages/PortalChooser";
-import StaffRegister from "./pages/staff/StaffRegister";
 import OfficerLogin from "./pages/officer/OfficerLogin";
 import MunicipalityAdminLogin from "./pages/admin/MunicipalityAdminLogin";
 import ProvinceAdminLogin from "./pages/admin/ProvinceAdminLogin";
@@ -54,7 +53,6 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/portals" element={<PortalChooser />} />
           <Route path="/staff/login" element={<Navigate to="/portals" replace />} />
-          <Route path="/staff/register" element={<StaffRegister />} />
           <Route path="/officer/login" element={<OfficerLogin />} />
           <Route path="/admin/login" element={<MunicipalityAdminLogin />} />
           <Route path="/admin/province/login" element={<ProvinceAdminLogin />} />

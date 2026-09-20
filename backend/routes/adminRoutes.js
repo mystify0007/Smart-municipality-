@@ -10,7 +10,7 @@ const {
 } = require("../controllers/adminController");
 
 const {
-  listOfficers, getOfficerDetail, approveOfficer, rejectOfficer, suspendOfficer, activateOfficer,
+  createOfficer, listOfficers, getOfficerDetail, approveOfficer, rejectOfficer, suspendOfficer, activateOfficer,
 } = require("../controllers/officerVerificationController");
 
 const { listServices, createService, updateService, deleteService } = require("../controllers/serviceController");
@@ -76,7 +76,9 @@ router.post(
   createMunicipalityAdmin
 );
 
-// Officer verification — the ONLY place officer_status can change
+// Officer accounts — the Municipality Admin creates them directly (no
+// public Officer registration) and is the ONLY place officer_status changes
+router.post("/officers", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), createOfficer);
 router.get("/officers", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), listOfficers);
 router.get("/officers/:id", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), getOfficerDetail);
 router.patch("/officers/:id/approve", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), approveOfficer);

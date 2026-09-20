@@ -7,7 +7,6 @@ export default function OfficerLogin() {
       subheading="Officer Portal"
       expectedRole="Officer"
       redirectPath="/officer/dashboard"
-      showOfficerRegisterLink
       wrongPortalHint="This isn't an Officer account. Choose the correct staff portal below."
     />
   );

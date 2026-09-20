@@ -12,16 +12,26 @@ const STATUS_STYLES = {
   Suspended: "bg-portal-danger/15 text-portal-danger",
 };
 
+const EMPTY_CREATE_FORM = {
+  full_name: "", email: "", phone: "", password: "", address: "", department: "", designation: "",
+};
+
 export default function OfficerVerification() {
   const { t } = useLanguage();
   const [officers, setOfficers] = useState([]);
-  const [filter, setFilter] = useState("Pending");
+  // Every Officer is now created here by the Admin (there's no more public
+  // Officer registration), so an account starts Approved, not Pending —
+  // defaulting the filter to "All" is what actually shows something.
+  const [filter, setFilter] = useState("All");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState(null);
   const [selected, setSelected] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectFor, setShowRejectFor] = useState(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createForm, setCreateForm] = useState(EMPTY_CREATE_FORM);
+  const [creating, setCreating] = useState(false);
 
   async function loadOfficers() {
     setLoading(true);
@@ -60,6 +70,31 @@ export default function OfficerVerification() {
     }
   }
 
+  function updateCreateForm(field, value) {
+    setCreateForm((f) => ({ ...f, [field]: value }));
+  }
+
+  async function handleCreateOfficer(e) {
+    e.preventDefault();
+    setMessage(null);
+    setCreating(true);
+    try {
+      await api.post("/admin/officers", createForm);
+      setMessage({ type: "success", text: "Officer account created." });
+      setCreateForm(EMPTY_CREATE_FORM);
+      setShowCreateForm(false);
+      // Switching the filter re-triggers the loadOfficers() effect below;
+      // if we're already on "All" that effect won't re-fire, so reload
+      // directly in that one case.
+      if (filter === "All") loadOfficers();
+      else setFilter("All");
+    } catch (err) {
+      setMessage({ type: "error", text: err.response?.data?.error || "Failed to create officer" });
+    } finally {
+      setCreating(false);
+    }
+  }
+
   return (
     <DashboardLayout title={t("title.officerVerification")}>
       {message && (
@@ -72,24 +107,104 @@ export default function OfficerVerification() {
         </p>
       )}
 
-      <div className="flex gap-2 mb-4">
-        {STATUS_FILTERS.map((s) => (
-          <button
-            key={s}
-            onClick={() => setFilter(s)}
-            className={`text-xs px-3 py-1.5 rounded-lg border ${
-              filter === s
-                ? "bg-portal-primary text-white border-portal-primary"
-                : "bg-portal-panel text-portal-muted border-portal-panel-border hover:text-portal-text"
-            }`}
-          >
-            {s}
-          </button>
-        ))}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex gap-2">
+          {STATUS_FILTERS.map((s) => (
+            <button
+              key={s}
+              onClick={() => setFilter(s)}
+              className={`text-xs px-3 py-1.5 rounded-lg border ${
+                filter === s
+                  ? "bg-portal-primary text-white border-portal-primary"
+                  : "bg-portal-panel text-portal-muted border-portal-panel-border hover:text-portal-text"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setShowCreateForm((v) => !v)}
+          className="text-xs px-3 py-1.5 rounded-lg bg-portal-primary text-white hover:bg-portal-primary-hover"
+        >
+          {showCreateForm ? "Cancel" : "+ Create Officer"}
+        </button>
       </div>
 
+      {showCreateForm && (
+        <div className="bg-portal-panel border border-portal-panel-border rounded-xl p-6 mb-4">
+          <h3 className="font-medium text-portal-text mb-4">Create Officer Account</h3>
+          <form onSubmit={handleCreateOfficer} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm text-portal-muted mb-1.5">Full Name</label>
+                <input
+                  required value={createForm.full_name} onChange={(e) => updateCreateForm("full_name", e.target.value)}
+                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-portal-muted mb-1.5">Phone</label>
+                <input
+                  value={createForm.phone} onChange={(e) => updateCreateForm("phone", e.target.value)}
+                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm text-portal-muted mb-1.5">Email</label>
+                <input
+                  type="email" required value={createForm.email} onChange={(e) => updateCreateForm("email", e.target.value)}
+                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-portal-muted mb-1.5">Password</label>
+                <input
+                  type="password" required minLength={6} value={createForm.password}
+                  onChange={(e) => updateCreateForm("password", e.target.value)}
+                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm text-portal-muted mb-1.5">Department</label>
+                <input
+                  required value={createForm.department} onChange={(e) => updateCreateForm("department", e.target.value)}
+                  placeholder="e.g. Revenue"
+                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-portal-muted mb-1.5">Designation</label>
+                <input
+                  required value={createForm.designation} onChange={(e) => updateCreateForm("designation", e.target.value)}
+                  placeholder="e.g. Tax Officer"
+                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm text-portal-muted mb-1.5">Address (optional)</label>
+              <input
+                value={createForm.address} onChange={(e) => updateCreateForm("address", e.target.value)}
+                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+              />
+            </div>
+            <button
+              disabled={creating}
+              className="w-full bg-portal-primary hover:bg-portal-primary-hover disabled:opacity-60 text-white font-medium rounded-lg py-2.5"
+            >
+              {creating ? "Creating..." : "Create Officer"}
+            </button>
+          </form>
+        </div>
+      )}
+
       <div className="bg-portal-panel border border-portal-panel-border rounded-xl p-6">
-        <h3 className="font-medium text-portal-text mb-4">Officer Registrations</h3>
+        <h3 className="font-medium text-portal-text mb-4">Officers</h3>
         {loading ? (
           <p className="text-portal-muted text-sm">Loading...</p>
         ) : officers.length === 0 ? (
