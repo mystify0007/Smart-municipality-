@@ -162,8 +162,28 @@ ALTER TABLE complaints
 ALTER TABLE departments
   ADD COLUMN municipality_id INT NULL AFTER name,
   ADD CONSTRAINT fk_departments_municipality
-    FOREIGN KEY (municipality_id) REFERENCES municipalities(municipality_id),
-  DROP INDEX name,
+    FOREIGN KEY (municipality_id) REFERENCES municipalities(municipality_id);
+
+-- The old UNIQUE(name) constraint's index isn't necessarily called `name` —
+-- that's only what an inline `UNIQUE` column attribute is auto-named on a
+-- freshly-created table. An installation whose `departments` table has any
+-- other history (a different server version, a manual phpMyAdmin edit) can
+-- have that same constraint under a different index name, and a hardcoded
+-- `DROP INDEX name` fails outright if so — look the real name up instead.
+SET @old_unique_index := (
+  SELECT INDEX_NAME FROM information_schema.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'departments'
+    AND COLUMN_NAME = 'name' AND NON_UNIQUE = 0 AND INDEX_NAME <> 'PRIMARY'
+  LIMIT 1
+);
+SET @drop_old_unique := IF(@old_unique_index IS NOT NULL,
+  CONCAT('ALTER TABLE departments DROP INDEX `', @old_unique_index, '`'),
+  'DO 0');
+PREPARE stmt FROM @drop_old_unique;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+ALTER TABLE departments
   ADD UNIQUE KEY uq_departments_name_municipality (name, municipality_id);
 
 ALTER TABLE municipal_services
