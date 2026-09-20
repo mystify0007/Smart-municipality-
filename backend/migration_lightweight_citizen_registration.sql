@@ -1,0 +1,11 @@
+-- Run this once in phpMyAdmin (Database: smart_municipality_portal -> SQL tab),
+-- any time after migration_municipality_nepal_structure.sql.
+--
+-- Citizen registration now collects only phone, email, and password —
+-- full_name, address, citizenship_no, and municipality are filled in later
+-- from inside the Citizen's own portal (see citizenController.updateMyProfile).
+-- full_name was NOT NULL from the very first schema, before any of this
+-- existed, so it has to be relaxed explicitly; every other field a citizen
+-- fills in later (address, citizenship_no, municipality_id) was already
+-- nullable.
+ALTER TABLE users MODIFY COLUMN full_name VARCHAR(100) NULL;

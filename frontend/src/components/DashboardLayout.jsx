@@ -15,6 +15,7 @@ const NAV_ITEMS = {
     { key: "nav.eSifaris", path: "/citizen/apply" },
     { key: "nav.taxPayment", path: "/citizen/tax" },
     { key: "nav.complaints", path: "/citizen/complaints" },
+    { key: "nav.profile", path: "/citizen/profile" },
   ],
   Officer: [
     { key: "nav.dashboard", path: "/officer/dashboard" },

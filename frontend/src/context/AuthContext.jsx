@@ -42,8 +42,19 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
+  // Some updates (e.g. a Citizen completing their profile and setting
+  // municipality_id for the first time) change claims baked into the
+  // current JWT, issued at login. The endpoint re-signs a fresh token in
+  // that case and the caller passes it here, so the app picks up the
+  // change immediately instead of needing a full logout/login.
+  function refreshSession(token, user) {
+    sessionStorage.setItem("token", token);
+    sessionStorage.setItem("user", JSON.stringify(user));
+    setUser(user);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, staffLogin, register, logout }}>
+    <AuthContext.Provider value={{ user, login, staffLogin, register, logout, refreshSession }}>
       {children}
     </AuthContext.Provider>
   );

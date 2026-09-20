@@ -15,6 +15,7 @@ import ProvinceAdminLogin from "./pages/admin/ProvinceAdminLogin";
 import StateAdminLogin from "./pages/admin/StateAdminLogin";
 
 import CitizenDashboard from "./pages/citizen/CitizenDashboard";
+import CitizenProfile from "./pages/citizen/CitizenProfile";
 import MyRequests from "./pages/citizen/MyRequests";
 import ApplyCertificate from "./pages/citizen/ApplyCertificate";
 import TaxPayment from "./pages/citizen/TaxPayment";
@@ -76,6 +77,9 @@ export default function App() {
           } />
           <Route path="/citizen/complaints" element={
             <ProtectedRoute allowedRoles={["Citizen"]}><Complaints /></ProtectedRoute>
+          } />
+          <Route path="/citizen/profile" element={
+            <ProtectedRoute allowedRoles={["Citizen"]}><CitizenProfile /></ProtectedRoute>
           } />
 
           {/* Officer */}

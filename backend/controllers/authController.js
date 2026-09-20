@@ -80,14 +80,6 @@ function toPublicUser(user) {
   };
 }
 
-async function municipalityExists(municipalityId) {
-  const [rows] = await pool.query(
-    "SELECT municipality_id FROM municipalities WHERE municipality_id = ?",
-    [municipalityId]
-  );
-  return rows.length > 0;
-}
-
 async function provinceExists(provinceId) {
   const [rows] = await pool.query(
     "SELECT province_id FROM provinces WHERE province_id = ?",
@@ -116,23 +108,22 @@ async function findUserWithMunicipality(email) {
 // PUBLIC PORTAL — Citizen
 // ---------------------------------------------------------------------------
 
+// Registration is deliberately lightweight — just enough to create the
+// account and log in. full_name, address, citizenship_no, and municipality
+// are filled in afterward from inside the Citizen's own portal (see
+// citizenController.updateMyProfile), not collected upfront here.
 async function register(req, res) {
-  const connection = await pool.getConnection();
   try {
-    const {
-      full_name, email, phone, password, role, address, citizenship_no, municipality_id,
-    } = req.body;
+    const { email, phone, password, role } = req.body;
 
-    if (!full_name || !email || !password || !role || !municipality_id) {
-      connection.release();
+    if (!email || !phone || !password || !role) {
       return res.status(400).json({
         success: false,
-        error: "full_name, email, password, role, and municipality_id are required",
+        error: "email, phone, password, and role are required",
       });
     }
 
     if (!PUBLIC_ROLES.includes(role)) {
-      connection.release();
       return res.status(403).json({
         success: false,
         error: "Officer accounts must be created through the staff registration page. Admin accounts are provisioned through system configuration and are never self-registered.",
@@ -140,45 +131,34 @@ async function register(req, res) {
     }
 
     if (!emailRegex.test(email)) {
-      connection.release();
       return res.status(400).json({ success: false, error: "Invalid email format" });
     }
 
     if (password.length < 6) {
-      connection.release();
       return res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
     }
 
-    if (!(await municipalityExists(municipality_id))) {
-      connection.release();
-      return res.status(400).json({ success: false, error: "Selected municipality does not exist" });
-    }
-
-    const [existing] = await connection.query("SELECT user_id FROM users WHERE email = ?", [email]);
+    const [existing] = await pool.query("SELECT user_id FROM users WHERE email = ?", [email]);
     if (existing.length > 0) {
-      connection.release();
       return res.status(409).json({ success: false, error: "Email is already registered" });
     }
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    const [userResult] = await connection.query(
-      `INSERT INTO users (full_name, email, phone, password, role, municipality_id, address, citizenship_no)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [full_name, email, phone || null, hashedPassword, role, municipality_id, address || null, citizenship_no || null]
+    const [userResult] = await pool.query(
+      "INSERT INTO users (email, phone, password, role) VALUES (?, ?, ?, ?)",
+      [email, phone, hashedPassword, role]
     );
     const userId = userResult.insertId;
 
     return res.status(201).json({
       success: true,
-      message: "User registered successfully",
-      user: { user_id: userId, full_name, email, role, municipality_id },
+      message: "User registered successfully. Complete your profile after logging in.",
+      user: { user_id: userId, email, phone, role },
     });
   } catch (err) {
     console.error("Register error:", err);
     return res.status(500).json({ success: false, error: "Registration failed" });
-  } finally {
-    connection.release();
   }
 }
 
@@ -647,4 +627,5 @@ module.exports = {
   register, login, staffLogin,
   adminBootstrap, createProvinceAdmin, updateProvinceAdminStatus,
   createMunicipalityAdmin, changePassword,
+  signToken, toPublicUser,
 };

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
@@ -43,9 +44,23 @@ export default function CitizenDashboard() {
   return (
     <DashboardLayout title={t("title.citizenDashboard")}>
       <div className="bg-gradient-to-r from-portal-primary/20 to-transparent border border-portal-panel-border rounded-xl p-6 mb-6">
-        <h2 className="text-xl font-semibold text-portal-text">👋 Welcome back, {user?.full_name}</h2>
+        <h2 className="text-xl font-semibold text-portal-text">👋 Welcome back{user?.full_name ? `, ${user.full_name}` : ""}</h2>
         <p className="text-portal-muted text-sm mt-1">Here's what's happening in your account today.</p>
       </div>
+
+      {!user?.municipality_id && (
+        <div className="bg-portal-accent/10 border border-portal-accent/30 rounded-xl p-4 mb-6 flex items-center justify-between gap-4">
+          <p className="text-sm text-portal-text">
+            Complete your profile — add your name, address, and municipality — to apply for certificates, pay tax, or file complaints.
+          </p>
+          <Link
+            to="/citizen/profile"
+            className="shrink-0 text-sm px-4 py-2 rounded-lg bg-portal-primary text-white hover:bg-portal-primary-hover"
+          >
+            Complete Profile
+          </Link>
+        </div>
+      )}
 
       {error && <p className="text-portal-danger mb-4">{error}</p>}
 

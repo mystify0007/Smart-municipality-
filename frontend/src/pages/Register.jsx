@@ -1,18 +1,16 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import PreferenceToggles from "../components/PreferenceToggles";
-import api from "../api/axios";
 
+// Registration is deliberately lightweight — just email, phone, and
+// password to create the account. Full name, address, citizenship number
+// (linking a nagarikta, if the citizen has one), and municipality are all
+// filled in afterward from the Citizen's own dashboard (see
+// citizen/CitizenProfile.jsx), not collected upfront here.
 export default function Register() {
-  const [form, setForm] = useState({
-    full_name: "", email: "", phone: "", password: "",
-    role: "Citizen", address: "", citizenship_no: "", municipality_id: "",
-  });
-  const [municipalities, setMunicipalities] = useState([]);
-  const [provinceId, setProvinceId] = useState("");
-  const [districtId, setDistrictId] = useState("");
+  const [form, setForm] = useState({ email: "", phone: "", password: "", role: "Citizen" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -21,39 +19,8 @@ export default function Register() {
   const { t } = useLanguage();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    api.get("/locations/municipalities")
-      .then((res) => setMunicipalities(res.data.municipalities))
-      .catch(() => setMunicipalities([]));
-  }, []);
-
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
-  }
-
-  // Province -> District -> Municipality, all derived from the one
-  // already-onboarded-municipalities list — a Citizen can only register
-  // under a Local Body that's actually onboarded, so this only ever offers
-  // real choices instead of any of Nepal's 753 Local Bodies.
-  const provinces = [...new Map(municipalities.map((m) => [m.province_id, m.province_name])).entries()]
-    .map(([province_id, province_name]) => ({ province_id, province_name }));
-
-  const districts = [...new Map(
-    municipalities.filter((m) => String(m.province_id) === String(provinceId))
-      .map((m) => [m.district_id, m.district_name])
-  ).entries()].map(([district_id, district_name]) => ({ district_id, district_name }));
-
-  const municipalityOptions = municipalities.filter((m) => String(m.district_id) === String(districtId));
-
-  function selectProvince(value) {
-    setProvinceId(value);
-    setDistrictId("");
-    update("municipality_id", "");
-  }
-
-  function selectDistrict(value) {
-    setDistrictId(value);
-    update("municipality_id", "");
   }
 
   async function handleSubmit(e) {
@@ -61,10 +28,9 @@ export default function Register() {
     setError("");
     setLoading(true);
     try {
-      const res = await register(form);
+      await register(form);
       setSuccess(true);
       setTimeout(() => navigate("/login"), 1200);
-      void res;
     } catch (err) {
       setError(err.response?.data?.error || "Registration failed. Please try again.");
     } finally {
@@ -81,51 +47,9 @@ export default function Register() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-portal-muted mb-1.5">Province</label>
-            <select
-              required value={provinceId} onChange={(e) => selectProvince(e.target.value)}
-              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
-            >
-              <option value="">Select province</option>
-              {provinces.map((p) => (
-                <option key={p.province_id} value={p.province_id}>{p.province_name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm text-portal-muted mb-1.5">District</label>
-            <select
-              required disabled={!provinceId} value={districtId} onChange={(e) => selectDistrict(e.target.value)}
-              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary disabled:opacity-50"
-            >
-              <option value="">Select district</option>
-              {districts.map((d) => (
-                <option key={d.district_id} value={d.district_id}>{d.district_name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm text-portal-muted mb-1.5">{t("register.municipality")}</label>
-            <select
-              required disabled={!districtId} value={form.municipality_id}
-              onChange={(e) => update("municipality_id", e.target.value)}
-              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary disabled:opacity-50"
-            >
-              <option value="">{t("register.selectMunicipality")}</option>
-              {municipalityOptions.map((m) => (
-                <option key={m.municipality_id} value={m.municipality_id}>
-                  {m.local_body_name} ({m.type_name})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm text-portal-muted mb-1.5">{t("register.fullName")}</label>
+            <label className="block text-sm text-portal-muted mb-1.5">{t("register.phone")}</label>
             <input
-              required value={form.full_name} onChange={(e) => update("full_name", e.target.value)}
+              required value={form.phone} onChange={(e) => update("phone", e.target.value)}
               className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
             />
           </div>
@@ -138,35 +62,10 @@ export default function Register() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm text-portal-muted mb-1.5">{t("register.phone")}</label>
-              <input
-                value={form.phone} onChange={(e) => update("phone", e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-portal-muted mb-1.5">{t("login.password")}</label>
-              <input
-                type="password" required value={form.password} onChange={(e) => update("password", e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
-              />
-            </div>
-          </div>
-
           <div>
-            <label className="block text-sm text-portal-muted mb-1.5">{t("register.address")}</label>
+            <label className="block text-sm text-portal-muted mb-1.5">{t("login.password")}</label>
             <input
-              value={form.address} onChange={(e) => update("address", e.target.value)}
-              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-portal-muted mb-1.5">Citizenship No. (optional)</label>
-            <input
-              value={form.citizenship_no} onChange={(e) => update("citizenship_no", e.target.value)}
+              type="password" required minLength={6} value={form.password} onChange={(e) => update("password", e.target.value)}
               className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
             />
           </div>
@@ -189,6 +88,10 @@ export default function Register() {
             {loading ? t("action.loading") : t("action.register")}
           </button>
         </form>
+
+        <p className="text-xs text-portal-muted text-center mt-4">
+          You'll fill in your name, address, and municipality after logging in.
+        </p>
 
         <div className="mt-6 text-center">
           <span className="text-sm text-portal-muted">{t("register.alreadyHave")} </span>

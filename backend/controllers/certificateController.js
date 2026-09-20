@@ -12,6 +12,13 @@ async function applyForCertificate(req, res) {
     const userId = req.user.user_id;
     const { certificate_type, purpose } = req.body;
 
+    if (!req.user.municipality_id) {
+      return res.status(400).json({
+        success: false,
+        error: "Complete your profile (select your municipality) before applying.",
+      });
+    }
+
     if (!certificate_type || !purpose) {
       return res.status(400).json({ success: false, error: "certificate_type and purpose are required" });
     }

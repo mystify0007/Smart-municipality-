@@ -16,6 +16,13 @@ async function payTax(req, res) {
     const userId = req.user.user_id;
     const { tax_type, amount, payment_method } = req.body;
 
+    if (!req.user.municipality_id) {
+      return res.status(400).json({
+        success: false,
+        error: "Complete your profile (select your municipality) before paying tax.",
+      });
+    }
+
     if (!tax_type || !amount || !payment_method) {
       return res.status(400).json({
         success: false,

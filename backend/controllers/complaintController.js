@@ -13,6 +13,13 @@ async function submitComplaint(req, res) {
     const userId = req.user.user_id;
     const { subject, description, location } = req.body;
 
+    if (!req.user.municipality_id) {
+      return res.status(400).json({
+        success: false,
+        error: "Complete your profile (select your municipality) before filing a complaint.",
+      });
+    }
+
     if (!subject || !description) {
       return res.status(400).json({ success: false, error: "subject and description are required" });
     }
