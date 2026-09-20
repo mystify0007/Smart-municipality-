@@ -10,6 +10,10 @@ import HomePage from "./pages/HomePage";
 import PublicNotices from "./pages/PublicNotices";
 import StaffLogin from "./pages/staff/StaffLogin";
 import StaffRegister from "./pages/staff/StaffRegister";
+import OfficerLogin from "./pages/officer/OfficerLogin";
+import MunicipalityAdminLogin from "./pages/admin/MunicipalityAdminLogin";
+import ProvinceAdminLogin from "./pages/admin/ProvinceAdminLogin";
+import StateAdminLogin from "./pages/admin/StateAdminLogin";
 
 import CitizenDashboard from "./pages/citizen/CitizenDashboard";
 import MyRequests from "./pages/citizen/MyRequests";
@@ -50,6 +54,10 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/staff/login" element={<StaffLogin />} />
           <Route path="/staff/register" element={<StaffRegister />} />
+          <Route path="/officer/login" element={<OfficerLogin />} />
+          <Route path="/admin/login" element={<MunicipalityAdminLogin />} />
+          <Route path="/admin/province/login" element={<ProvinceAdminLogin />} />
+          <Route path="/admin/state/login" element={<StateAdminLogin />} />
 
           {/* Citizen */}
           <Route path="/citizen/dashboard" element={

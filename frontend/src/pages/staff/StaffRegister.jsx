@@ -54,7 +54,7 @@ export default function StaffRegister() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setSuccess(true);
-      setTimeout(() => navigate("/staff/login"), 2500);
+      setTimeout(() => navigate("/officer/login"), 2500);
     } catch (err) {
       setError(err.response?.data?.error || "Registration failed. Please try again.");
     } finally {
@@ -181,7 +181,7 @@ export default function StaffRegister() {
 
         <div className="mt-6 text-center">
           <span className="text-sm text-slate-400">Already verified? </span>
-          <a href="/staff/login" className="text-sm text-blue-400 hover:underline">Log in here</a>
+          <a href="/officer/login" className="text-sm text-blue-400 hover:underline">Log in here</a>
         </div>
       </div>
 

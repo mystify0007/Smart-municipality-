@@ -1,49 +1,33 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 import PreferenceToggles from "../../components/PreferenceToggles";
-import { defaultRouteFor } from "../../components/ProtectedRoute";
 
-const ROLE_ROUTES = {
-  Officer: "/officer/dashboard",
-  Admin: "/admin/dashboard",
-};
+// Officer and the three Admin scopes each have their own dedicated login
+// page/route now (see OfficerLogin.jsx, MunicipalityAdminLogin.jsx,
+// ProvinceAdminLogin.jsx, StateAdminLogin.jsx) instead of one shared form —
+// this page is just the entry point that routes a visitor to the right one.
+const PORTALS = [
+  {
+    label: "Officer",
+    href: "/officer/login",
+    description: "Verify citizens, and manage your assigned applications and complaints.",
+  },
+  {
+    label: "Municipality Admin",
+    href: "/admin/login",
+    description: "Run one Municipality's day-to-day operations.",
+  },
+  {
+    label: "Province Admin",
+    href: "/admin/province/login",
+    description: "Oversee every Municipality onboarded in one Province.",
+  },
+  {
+    label: "State Admin",
+    href: "/admin/state/login",
+    description: "Oversee every Province across the platform.",
+  },
+];
 
-// Uses the SAME AuthContext.staffLogin mechanism as the regular login page
-// (updates React state via setUser + SPA navigate), rather than a raw
-// localStorage write + full page reload — that's what caused the earlier
-// bounce-back bug, since a hard reload can race with React's first render.
 export default function StaffLogin() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { staffLogin } = useAuth();
-  const navigate = useNavigate();
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      const user = await staffLogin(email, password);
-      if (!ROLE_ROUTES[user.role]) {
-        // Defensive: if a role ever doesn't match Officer/Admin exactly,
-        // surface that clearly instead of silently bouncing anywhere.
-        setError(`Logged in, but role "${user.role}" has no staff dashboard configured.`);
-        setLoading(false);
-        return;
-      }
-      // An Admin's destination depends on admin_scope (Province oversees
-      // Municipalities, from a different dashboard than a Municipality Admin
-      // runs) — defaultRouteFor() knows the split, ROLE_ROUTES alone doesn't.
-      navigate(defaultRouteFor(user));
-    } catch (err) {
-      setError(err.response?.data?.error || "Login failed. Please try again.");
-      setLoading(false);
-    }
-  }
-
   return (
     <div className="min-h-screen portal-photo-bg flex flex-col items-center justify-center px-4 py-12 relative">
       <PreferenceToggles className="absolute top-4 right-4" />
@@ -59,52 +43,25 @@ export default function StaffLogin() {
       </div>
 
       <div className="w-full max-w-sm bg-[#101a30] border border-slate-700 rounded-xl p-8">
-        <h2 className="text-lg font-medium text-slate-100 text-center mb-6">Officer / Admin Sign In</h2>
+        <h2 className="text-lg font-medium text-slate-100 text-center mb-6">Which portal do you need?</h2>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm text-slate-400 mb-1.5">Official Email</label>
-            <input
-              type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@municipality.gov.np"
-              className="w-full rounded-lg bg-[#0b1120] border border-slate-700 px-3 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-slate-400 mb-1.5">Password</label>
-            <input
-              type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full rounded-lg bg-[#0b1120] border border-slate-700 px-3 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {error && (
-            <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit" disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium rounded-lg py-2.5 transition-colors"
-          >
-            {loading ? "Authenticating..." : "Secure Login"}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center space-y-1">
-          <p>
-            <a href="/staff/register" className="text-sm text-blue-400 hover:underline">
-              Register a new staff account
+        <div className="space-y-3">
+          {PORTALS.map((p) => (
+            <a
+              key={p.href}
+              href={p.href}
+              className="block rounded-lg border border-slate-700 bg-[#0b1120] px-4 py-3 hover:border-blue-500 transition-colors"
+            >
+              <p className="text-slate-100 font-medium">{p.label}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{p.description}</p>
             </a>
-          </p>
-          <p>
-            <a href="/login" className="text-sm text-slate-500 hover:underline">
-              ← Citizen Login
-            </a>
-          </p>
+          ))}
+        </div>
+
+        <div className="mt-6 text-center">
+          <a href="/login" className="text-sm text-slate-500 hover:underline">
+            ← Citizen Login
+          </a>
         </div>
       </div>
 
