@@ -3,6 +3,11 @@ import DashboardLayout from "../../components/DashboardLayout";
 import api from "../../api/axios";
 import { useLanguage } from "../../context/LanguageContext";
 
+function extractCoords(text) {
+  const m = /(-?\d{1,2}\.\d{4,}),\s*(-?\d{1,3}\.\d{4,})/.exec(text || "");
+  return m ? { lat: m[1], lng: m[2] } : null;
+}
+
 export default function Complaints() {
   const { t } = useLanguage();
   const [complaints, setComplaints] = useState([]);
@@ -12,6 +17,8 @@ export default function Complaints() {
   const [media, setMedia] = useState(null);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState("");
 
   async function loadComplaints() {
     try {
@@ -22,7 +29,49 @@ export default function Complaints() {
     }
   }
 
-  useEffect(() => { loadComplaints(); }, []);
+  function detectLocation() {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation isn't supported by your browser. Please type your location manually.");
+      return;
+    }
+    setLocating(true);
+    setLocationError("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const coordsText = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+        let address = "";
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+            { headers: { Accept: "application/json" } }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            address = data.display_name || "";
+          }
+        } catch {
+          // Reverse geocoding is best-effort; the raw coordinates below are enough on their own.
+        }
+        setLocation((address ? `${address} (${coordsText})` : coordsText).slice(0, 255));
+        setLocating(false);
+      },
+      (err) => {
+        setLocating(false);
+        setLocationError(
+          err.code === err.PERMISSION_DENIED
+            ? "Location permission denied. Please enable it or type your location manually."
+            : "Couldn't detect your location. Please type it manually."
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  }
+
+  useEffect(() => {
+    loadComplaints();
+    detectLocation();
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -41,9 +90,9 @@ export default function Complaints() {
       setMessage({ type: "success", text: "Complaint submitted." });
       setSubject("");
       setDescription("");
-      setLocation("");
       setMedia(null);
       loadComplaints();
+      detectLocation();
     } catch (err) {
       setMessage({ type: "error", text: err.response?.data?.error || "Failed to submit" });
     }
@@ -68,11 +117,26 @@ export default function Complaints() {
             </div>
             <div>
               <label className="block text-sm text-portal-muted mb-1.5">Location</label>
-              <input
-                value={location} onChange={(e) => setLocation(e.target.value)}
-                placeholder="e.g. Ward 5"
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
-              />
+              <div className="flex gap-2">
+                <input
+                  value={location} onChange={(e) => setLocation(e.target.value)}
+                  placeholder={locating ? "Detecting your current location..." : "e.g. Ward 5"}
+                  className="flex-1 rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                />
+                <button
+                  type="button" onClick={detectLocation} disabled={locating}
+                  className="shrink-0 px-3 py-2.5 rounded-lg bg-portal-primary/80 hover:bg-portal-primary disabled:opacity-60 text-white text-sm whitespace-nowrap"
+                >
+                  {locating ? "Detecting..." : "📍 Detect"}
+                </button>
+              </div>
+              {locationError ? (
+                <p className="text-xs text-portal-danger mt-1">{locationError}</p>
+              ) : (
+                <p className="text-xs text-portal-muted mt-1">
+                  {locating ? "Getting your live location…" : location ? "Live location captured — edit above if needed." : "We'll auto-fill this with your live GPS location."}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm text-portal-muted mb-1.5">Description</label>
@@ -117,7 +181,20 @@ export default function Complaints() {
               {complaints.map((c) => (
                 <li key={c.complaint_id} className="border-b border-portal-panel-border/50 pb-2">
                   <p className="text-portal-text font-medium">{c.subject}</p>
-                  {c.location && <p className="text-portal-muted text-xs">📍 {c.location}</p>}
+                  {c.location && (
+                    <p className="text-portal-muted text-xs">
+                      📍 {c.location}
+                      {extractCoords(c.location) && (
+                        <a
+                          href={`https://www.google.com/maps?q=${extractCoords(c.location).lat},${extractCoords(c.location).lng}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="text-portal-primary underline ml-1"
+                        >
+                          View on map
+                        </a>
+                      )}
+                    </p>
+                  )}
                   <p className="text-portal-muted">{c.description}</p>
                   {c.image && (
                     isVideo(c.image) ? (
