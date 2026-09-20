@@ -34,6 +34,7 @@ export const translations = {
     "nav.complaintManagement": "Complaint Management",
     "nav.announcements": "Announcements",
     "nav.systemSettings": "System Settings",
+    "nav.provinceOverview": "Province Overview",
 
     // Page titles
     "title.citizenDashboard": "Citizen Dashboard",
@@ -56,6 +57,7 @@ export const translations = {
     "title.adminReports": "Reports & Analytics",
     "title.systemSettings": "System Settings",
     "title.adminProfile": "Admin Profile",
+    "title.provinceOverview": "Province Overview",
 
     // Login / Register
     "login.heading": "Sign In",
@@ -110,6 +112,7 @@ export const translations = {
     "nav.complaintManagement": "गुनासो व्यवस्थापन",
     "nav.announcements": "घोषणाहरू",
     "nav.systemSettings": "प्रणाली सेटिङहरू",
+    "nav.provinceOverview": "प्रदेश विवरण",
 
     "title.citizenDashboard": "नागरिक ड्यासबोर्ड",
     "title.myRequests": "मेरो अनुरोधहरू",
@@ -131,6 +134,7 @@ export const translations = {
     "title.adminReports": "प्रतिवेदन र विश्लेषण",
     "title.systemSettings": "प्रणाली सेटिङहरू",
     "title.adminProfile": "प्रशासक प्रोफाइल",
+    "title.provinceOverview": "प्रदेश विवरण",
 
     "login.heading": "साइन इन गर्नुहोस्",
     "login.email": "इमेल",

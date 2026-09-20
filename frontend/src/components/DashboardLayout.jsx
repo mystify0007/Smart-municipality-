@@ -35,13 +35,17 @@ const NAV_ITEMS = {
     { key: "nav.systemSettings", path: "/admin/settings" },
     { key: "nav.profile", path: "/admin/profile" },
   ],
+  ProvinceAdmin: [
+    { key: "nav.provinceOverview", path: "/admin/province/dashboard" },
+  ],
 };
 
 export default function DashboardLayout({ children, title }) {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
   const location = useLocation();
-  const navItems = NAV_ITEMS[user?.role] || [];
+  const navKey = user?.role === "Admin" && user?.admin_scope === "Province" ? "ProvinceAdmin" : user?.role;
+  const navItems = NAV_ITEMS[navKey] || [];
 
   return (
     <div className="min-h-screen portal-photo-bg flex">

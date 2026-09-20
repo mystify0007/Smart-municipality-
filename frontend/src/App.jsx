@@ -25,6 +25,7 @@ import OfficerReports from "./pages/officer/OfficerReports";
 import OfficerProfile from "./pages/officer/OfficerProfile";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import ProvinceDashboard from "./pages/admin/ProvinceDashboard";
 import OfficerVerification from "./pages/admin/OfficerVerification";
 import CitizenManagement from "./pages/admin/CitizenManagement";
 import MunicipalServices from "./pages/admin/MunicipalServices";
@@ -86,36 +87,41 @@ export default function App() {
             <ProtectedRoute allowedRoles={["Officer"]}><OfficerProfile /></ProtectedRoute>
           } />
 
-          {/* Admin */}
+          {/* Province Admin — oversees every Municipality in one Province */}
+          <Route path="/admin/province/dashboard" element={
+            <ProtectedRoute allowedRoles={["Admin"]} allowedAdminScopes={["Province"]}><ProvinceDashboard /></ProtectedRoute>
+          } />
+
+          {/* Municipality Admin — runs one Municipality day to day */}
           <Route path="/admin/dashboard" element={
-            <ProtectedRoute allowedRoles={["Admin"]}><AdminDashboard /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Admin"]} allowedAdminScopes={["Municipality"]}><AdminDashboard /></ProtectedRoute>
           } />
           <Route path="/admin/officers" element={
-            <ProtectedRoute allowedRoles={["Admin"]}><OfficerVerification /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Admin"]} allowedAdminScopes={["Municipality"]}><OfficerVerification /></ProtectedRoute>
           } />
           <Route path="/admin/citizens" element={
-            <ProtectedRoute allowedRoles={["Admin"]}><CitizenManagement /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Admin"]} allowedAdminScopes={["Municipality"]}><CitizenManagement /></ProtectedRoute>
           } />
           <Route path="/admin/services" element={
-            <ProtectedRoute allowedRoles={["Admin"]}><MunicipalServices /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Admin"]} allowedAdminScopes={["Municipality"]}><MunicipalServices /></ProtectedRoute>
           } />
           <Route path="/admin/applications" element={
-            <ProtectedRoute allowedRoles={["Admin"]}><ApplicationManagement /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Admin"]} allowedAdminScopes={["Municipality"]}><ApplicationManagement /></ProtectedRoute>
           } />
           <Route path="/admin/complaints" element={
-            <ProtectedRoute allowedRoles={["Admin"]}><ComplaintManagement /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Admin"]} allowedAdminScopes={["Municipality"]}><ComplaintManagement /></ProtectedRoute>
           } />
           <Route path="/admin/notices" element={
-            <ProtectedRoute allowedRoles={["Admin"]}><AdminNotices /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Admin"]} allowedAdminScopes={["Municipality"]}><AdminNotices /></ProtectedRoute>
           } />
           <Route path="/admin/reports" element={
-            <ProtectedRoute allowedRoles={["Admin"]}><AdminReports /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Admin"]} allowedAdminScopes={["Municipality"]}><AdminReports /></ProtectedRoute>
           } />
           <Route path="/admin/settings" element={
-            <ProtectedRoute allowedRoles={["Admin"]}><SystemSettings /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Admin"]} allowedAdminScopes={["Municipality"]}><SystemSettings /></ProtectedRoute>
           } />
           <Route path="/admin/profile" element={
-            <ProtectedRoute allowedRoles={["Admin"]}><AdminProfile /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={["Admin"]} allowedAdminScopes={["Municipality"]}><AdminProfile /></ProtectedRoute>
           } />
 
           <Route path="*" element={<Navigate to="/login" replace />} />

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import PreferenceToggles from "../../components/PreferenceToggles";
+import { defaultRouteFor } from "../../components/ProtectedRoute";
 
 const ROLE_ROUTES = {
   Officer: "/officer/dashboard",
@@ -26,15 +27,17 @@ export default function StaffLogin() {
     setLoading(true);
     try {
       const user = await staffLogin(email, password);
-      const destination = ROLE_ROUTES[user.role];
-      if (!destination) {
+      if (!ROLE_ROUTES[user.role]) {
         // Defensive: if a role ever doesn't match Officer/Admin exactly,
         // surface that clearly instead of silently bouncing anywhere.
         setError(`Logged in, but role "${user.role}" has no staff dashboard configured.`);
         setLoading(false);
         return;
       }
-      navigate(destination);
+      // An Admin's destination depends on admin_scope (Province oversees
+      // Municipalities, from a different dashboard than a Municipality Admin
+      // runs) — defaultRouteFor() knows the split, ROLE_ROUTES alone doesn't.
+      navigate(defaultRouteFor(user));
     } catch (err) {
       setError(err.response?.data?.error || "Login failed. Please try again.");
       setLoading(false);
