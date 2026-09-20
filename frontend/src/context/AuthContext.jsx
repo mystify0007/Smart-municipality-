@@ -5,15 +5,15 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem("user");
+    const stored = sessionStorage.getItem("user");
     return stored ? JSON.parse(stored) : null;
   });
 
   async function login(email, password) {
     const res = await api.post("/auth/login", { email, password });
     const { token, user } = res.data;
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(user));
+    sessionStorage.setItem("token", token);
+    sessionStorage.setItem("user", JSON.stringify(user));
     setUser(user);
     return user;
   }
@@ -25,8 +25,8 @@ export function AuthProvider({ children }) {
   async function staffLogin(email, password) {
     const res = await api.post("/auth/staff/login", { email, password });
     const { token, user } = res.data;
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(user));
+    sessionStorage.setItem("token", token);
+    sessionStorage.setItem("user", JSON.stringify(user));
     setUser(user);
     return user;
   }
@@ -37,8 +37,8 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
     setUser(null);
   }
 
