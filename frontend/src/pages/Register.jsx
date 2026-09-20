@@ -11,6 +11,8 @@ export default function Register() {
     role: "Citizen", address: "", citizenship_no: "", municipality_id: "",
   });
   const [municipalities, setMunicipalities] = useState([]);
+  const [provinceId, setProvinceId] = useState("");
+  const [districtId, setDistrictId] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -27,6 +29,31 @@ export default function Register() {
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  // Province -> District -> Municipality, all derived from the one
+  // already-onboarded-municipalities list — a Citizen can only register
+  // under a Local Body that's actually onboarded, so this only ever offers
+  // real choices instead of any of Nepal's 753 Local Bodies.
+  const provinces = [...new Map(municipalities.map((m) => [m.province_id, m.province_name])).entries()]
+    .map(([province_id, province_name]) => ({ province_id, province_name }));
+
+  const districts = [...new Map(
+    municipalities.filter((m) => String(m.province_id) === String(provinceId))
+      .map((m) => [m.district_id, m.district_name])
+  ).entries()].map(([district_id, district_name]) => ({ district_id, district_name }));
+
+  const municipalityOptions = municipalities.filter((m) => String(m.district_id) === String(districtId));
+
+  function selectProvince(value) {
+    setProvinceId(value);
+    setDistrictId("");
+    update("municipality_id", "");
+  }
+
+  function selectDistrict(value) {
+    setDistrictId(value);
+    update("municipality_id", "");
   }
 
   async function handleSubmit(e) {
@@ -54,15 +81,42 @@ export default function Register() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-portal-muted mb-1.5">{t("register.municipality")}</label>
+            <label className="block text-sm text-portal-muted mb-1.5">Province</label>
             <select
-              required value={form.municipality_id} onChange={(e) => update("municipality_id", e.target.value)}
+              required value={provinceId} onChange={(e) => selectProvince(e.target.value)}
               className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
             >
+              <option value="">Select province</option>
+              {provinces.map((p) => (
+                <option key={p.province_id} value={p.province_id}>{p.province_name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-portal-muted mb-1.5">District</label>
+            <select
+              required disabled={!provinceId} value={districtId} onChange={(e) => selectDistrict(e.target.value)}
+              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary disabled:opacity-50"
+            >
+              <option value="">Select district</option>
+              {districts.map((d) => (
+                <option key={d.district_id} value={d.district_id}>{d.district_name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-portal-muted mb-1.5">{t("register.municipality")}</label>
+            <select
+              required disabled={!districtId} value={form.municipality_id}
+              onChange={(e) => update("municipality_id", e.target.value)}
+              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary disabled:opacity-50"
+            >
               <option value="">{t("register.selectMunicipality")}</option>
-              {municipalities.map((m) => (
+              {municipalityOptions.map((m) => (
                 <option key={m.municipality_id} value={m.municipality_id}>
-                  {m.local_body_name} ({m.type_name}) — {m.district_name}, {m.province_name}
+                  {m.local_body_name} ({m.type_name})
                 </option>
               ))}
             </select>
