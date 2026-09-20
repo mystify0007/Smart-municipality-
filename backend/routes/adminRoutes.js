@@ -31,9 +31,11 @@ const {
 const { getSystemReports } = require("../controllers/reportsController");
 
 const { verifyToken, requireRole, requireAdminScope } = require("../middleware/authMiddleware");
-const { createProvinceAdmin, createMunicipalityAdmin } = require("../controllers/authController");
+const {
+  createProvinceAdmin, updateProvinceAdminStatus, createMunicipalityAdmin,
+} = require("../controllers/authController");
 
-// Every route below (other than /state, /province-admins, /province,
+// Every route below (other than /state, /province-admins*, /province,
 // /municipality-admins) is scoped to a Municipality Admin — this file is the
 // entire surface of "Full system access" from the access-control spec, but
 // only over that Admin's own Municipality. A Province or State Admin's
@@ -44,8 +46,8 @@ const { createProvinceAdmin, createMunicipalityAdmin } = require("../controllers
 // Dashboard overview
 router.get("/stats", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), getAdminStats);
 
-// State Admin's own privileges — oversee every Province, and create each
-// Province's one Admin account.
+// State Admin's own privileges — oversee every Province, create each
+// Province's one Admin account, and manage (activate/block) it afterward.
 router.get("/state", verifyToken, requireRole("Admin"), requireAdminScope("State"), getStateOverview);
 router.post(
   "/province-admins",
@@ -53,6 +55,13 @@ router.post(
   requireRole("Admin"),
   requireAdminScope("State"),
   createProvinceAdmin
+);
+router.patch(
+  "/province-admins/:id/status",
+  verifyToken,
+  requireRole("Admin"),
+  requireAdminScope("State"),
+  updateProvinceAdminStatus
 );
 
 // Province Admin's own privileges — oversee every Municipality onboarded in

@@ -184,12 +184,14 @@ async function getMyProvince(req, res) {
 }
 
 // GET /api/admin/state — the State Admin's oversight dashboard: all 7
-// Provinces with their Province Admin, if one has been created yet.
+// Provinces with their Province Admin (and that Admin's Active/Blocked
+// status, so the State Admin can manage them), if one has been created yet.
 async function getStateOverview(req, res) {
   try {
     const [provinceRows] = await pool.query(
       `SELECT p.province_id, p.name, p.nepali_name,
-              a.user_id AS admin_user_id, a.full_name AS admin_name, a.email AS admin_email
+              a.user_id AS admin_user_id, a.full_name AS admin_name, a.email AS admin_email,
+              a.status AS admin_status
        FROM provinces p
        LEFT JOIN users a
          ON a.province_id = p.province_id AND a.role = 'Admin' AND a.admin_scope = 'Province'

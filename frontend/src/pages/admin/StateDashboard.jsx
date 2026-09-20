@@ -50,6 +50,18 @@ export default function StateDashboard() {
     }
   }
 
+  async function toggleAdminStatus(adminUserId, currentStatus) {
+    const nextStatus = currentStatus === "Blocked" ? "Active" : "Blocked";
+    setMessage(null);
+    try {
+      await api.patch(`/admin/province-admins/${adminUserId}/status`, { status: nextStatus });
+      setMessage({ type: "success", text: `Province Admin ${nextStatus.toLowerCase()}.` });
+      loadOverview();
+    } catch (err) {
+      setMessage({ type: "error", text: err.response?.data?.error || "Failed to update province admin" });
+    }
+  }
+
   return (
     <DashboardLayout title={t("title.stateOverview")}>
       {message && (
@@ -122,13 +134,31 @@ export default function StateDashboard() {
                 <li key={p.province_id} className="border-b border-portal-panel-border/50 pb-3">
                   <p className="text-portal-text font-medium">{p.name}</p>
                   <p className="text-xs text-portal-muted">Province ID {p.province_id}</p>
-                  <p className="text-xs mt-1">
-                    {p.admin_name ? (
-                      <span className="text-portal-success">Admin: {p.admin_name} ({p.admin_email})</span>
-                    ) : (
-                      <span className="text-portal-danger">No admin assigned yet</span>
-                    )}
-                  </p>
+                  {p.admin_name ? (
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                      <p className="text-xs">
+                        <span className={p.admin_status === "Blocked" ? "text-portal-danger" : "text-portal-success"}>
+                          Admin: {p.admin_name} ({p.admin_email})
+                        </span>
+                        {" — "}
+                        <span className={p.admin_status === "Blocked" ? "text-portal-danger" : "text-portal-success"}>
+                          {p.admin_status}
+                        </span>
+                      </p>
+                      <button
+                        onClick={() => toggleAdminStatus(p.admin_user_id, p.admin_status)}
+                        className={`shrink-0 text-xs px-2.5 py-1 rounded-lg ${
+                          p.admin_status === "Blocked"
+                            ? "bg-portal-success/15 text-portal-success hover:bg-portal-success/25"
+                            : "bg-portal-danger/15 text-portal-danger hover:bg-portal-danger/25"
+                        }`}
+                      >
+                        {p.admin_status === "Blocked" ? "Activate" : "Deactivate"}
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-xs mt-1 text-portal-danger">No admin assigned yet</p>
+                  )}
                 </li>
               ))}
             </ul>

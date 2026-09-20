@@ -534,6 +534,38 @@ async function createProvinceAdmin(req, res) {
 }
 
 // ---------------------------------------------------------------------------
+// PROVINCE ADMIN MANAGEMENT — the State Admin's oversight over the Province
+// Admins it created. Scoped to role='Admin' AND admin_scope='Province' in
+// the WHERE clause itself, not just checked beforehand, so this endpoint can
+// never be used to activate/block a Citizen, Officer, or another State/
+// Municipality Admin by guessing their user_id.
+// ---------------------------------------------------------------------------
+
+async function updateProvinceAdminStatus(req, res) {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!["Active", "Blocked"].includes(status)) {
+      return res.status(400).json({ success: false, error: "status must be 'Active' or 'Blocked'" });
+    }
+
+    const [result] = await pool.query(
+      "UPDATE users SET status = ? WHERE user_id = ? AND role = 'Admin' AND admin_scope = 'Province'",
+      [status, id]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, error: "Province Admin not found" });
+    }
+
+    return res.json({ success: true, message: `Province Admin ${status.toLowerCase()}.` });
+  } catch (err) {
+    console.error("Update province admin status error:", err);
+    return res.status(500).json({ success: false, error: "Failed to update province admin status" });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // MUNICIPALITY ADMIN CREATION — a Province Admin's own privilege, not
 // self-service and not gated by the shared bootstrap key. Onboards a Local
 // Body within the caller's own Province (creating the Municipality row if
@@ -685,5 +717,6 @@ async function changePassword(req, res) {
 
 module.exports = {
   register, login, staffRegister, staffLogin,
-  adminBootstrap, createProvinceAdmin, createMunicipalityAdmin, changePassword,
+  adminBootstrap, createProvinceAdmin, updateProvinceAdminStatus,
+  createMunicipalityAdmin, changePassword,
 };
