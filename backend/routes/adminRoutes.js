@@ -34,6 +34,9 @@ const { verifyToken, requireRole, requireAdminScope } = require("../middleware/a
 const {
   createProvinceAdmin, updateProvinceAdminStatus, createMunicipalityAdmin,
 } = require("../controllers/authController");
+const {
+  createEnquiry, listMyEnquiries, listAllEnquiries, respondToEnquiry,
+} = require("../controllers/enquiryController");
 
 // Every route below (other than /state, /province-admins*, /province,
 // /municipality-admins) is scoped to a Municipality Admin — this file is the
@@ -63,10 +66,21 @@ router.patch(
   requireAdminScope("State"),
   updateProvinceAdminStatus
 );
+// Enquiries every Province Admin has raised — the State Admin reads and
+// responds to all of them, regardless of which Province raised each one.
+router.get("/state/enquiries", verifyToken, requireRole("Admin"), requireAdminScope("State"), listAllEnquiries);
+router.patch(
+  "/state/enquiries/:id/respond",
+  verifyToken,
+  requireRole("Admin"),
+  requireAdminScope("State"),
+  respondToEnquiry
+);
 
 // Province Admin's own privileges — oversee every Municipality onboarded in
-// their Province, and onboard a new Local Body by creating its one
-// Municipality Admin account.
+// their Province, onboard a new Local Body by creating its one Municipality
+// Admin account, and raise an enquiry to the State Admin when something
+// can't be resolved at the Province level.
 router.get("/province", verifyToken, requireRole("Admin"), requireAdminScope("Province"), getMyProvince);
 router.post(
   "/municipality-admins",
@@ -75,6 +89,8 @@ router.post(
   requireAdminScope("Province"),
   createMunicipalityAdmin
 );
+router.post("/enquiries", verifyToken, requireRole("Admin"), requireAdminScope("Province"), createEnquiry);
+router.get("/enquiries", verifyToken, requireRole("Admin"), requireAdminScope("Province"), listMyEnquiries);
 
 // Officer accounts — the Municipality Admin creates them directly (no
 // public Officer registration) and is the ONLY place officer_status changes

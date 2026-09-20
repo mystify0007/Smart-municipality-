@@ -9,6 +9,8 @@ const EMPTY_FORM = {
   office_address: "", contact_email: "", contact_phone: "",
 };
 
+const EMPTY_ENQUIRY_FORM = { subject: "", message: "" };
+
 export default function ProvinceDashboard() {
   const { t } = useLanguage();
   const [province, setProvince] = useState(null);
@@ -19,6 +21,10 @@ export default function ProvinceDashboard() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
+  const [selectedAdmin, setSelectedAdmin] = useState(null);
+  const [enquiries, setEnquiries] = useState([]);
+  const [enquiryForm, setEnquiryForm] = useState(EMPTY_ENQUIRY_FORM);
+  const [submittingEnquiry, setSubmittingEnquiry] = useState(false);
 
   async function loadOverview() {
     setLoading(true);
@@ -31,7 +37,16 @@ export default function ProvinceDashboard() {
     }
   }
 
-  useEffect(() => { loadOverview(); }, []);
+  async function loadEnquiries() {
+    try {
+      const res = await api.get("/admin/enquiries");
+      setEnquiries(res.data.enquiries);
+    } catch {
+      setEnquiries([]);
+    }
+  }
+
+  useEffect(() => { loadOverview(); loadEnquiries(); }, []);
 
   useEffect(() => {
     api.get("/locations/districts?province_id=" + province?.province_id)
@@ -77,6 +92,22 @@ export default function ProvinceDashboard() {
     }
   }
 
+  async function handleEnquirySubmit(e) {
+    e.preventDefault();
+    setMessage(null);
+    setSubmittingEnquiry(true);
+    try {
+      await api.post("/admin/enquiries", enquiryForm);
+      setMessage({ type: "success", text: "Enquiry submitted to the State Admin." });
+      setEnquiryForm(EMPTY_ENQUIRY_FORM);
+      loadEnquiries();
+    } catch (err) {
+      setMessage({ type: "error", text: err.response?.data?.error || "Failed to submit enquiry" });
+    } finally {
+      setSubmittingEnquiry(false);
+    }
+  }
+
   return (
     <DashboardLayout title={t("title.provinceOverview")}>
       {province && (
@@ -97,7 +128,7 @@ export default function ProvinceDashboard() {
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-6 mb-6">
         <div className="bg-portal-panel border border-portal-panel-border rounded-xl p-6">
           <h3 className="font-medium text-portal-text mb-4">Onboard a New Municipality</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -198,7 +229,9 @@ export default function ProvinceDashboard() {
                   <p className="text-xs text-portal-muted">{m.district_name} District</p>
                   <p className="text-xs mt-1">
                     {m.admin_name ? (
-                      <span className="text-portal-success">Admin: {m.admin_name} ({m.admin_email})</span>
+                      <button onClick={() => setSelectedAdmin(m)} className="text-portal-success hover:underline">
+                        Admin: {m.admin_name} ({m.admin_email})
+                      </button>
                     ) : (
                       <span className="text-portal-danger">No admin assigned yet</span>
                     )}
@@ -209,6 +242,92 @@ export default function ProvinceDashboard() {
           )}
         </div>
       </div>
+
+      <div className="grid grid-cols-2 gap-6">
+        <div className="bg-portal-panel border border-portal-panel-border rounded-xl p-6">
+          <h3 className="font-medium text-portal-text mb-4">Raise an Enquiry to the State Admin</h3>
+          <form onSubmit={handleEnquirySubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm text-portal-muted mb-1.5">Subject</label>
+              <input
+                required value={enquiryForm.subject}
+                onChange={(e) => setEnquiryForm((f) => ({ ...f, subject: e.target.value }))}
+                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-portal-muted mb-1.5">Message</label>
+              <textarea
+                required rows={4} value={enquiryForm.message}
+                onChange={(e) => setEnquiryForm((f) => ({ ...f, message: e.target.value }))}
+                placeholder="Describe what can't be resolved at the Province level..."
+                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
+              />
+            </div>
+            <button
+              disabled={submittingEnquiry}
+              className="w-full bg-portal-primary hover:bg-portal-primary-hover disabled:opacity-60 text-white font-medium rounded-lg py-2.5"
+            >
+              {submittingEnquiry ? "Submitting..." : "Submit Enquiry"}
+            </button>
+          </form>
+        </div>
+
+        <div className="bg-portal-panel border border-portal-panel-border rounded-xl p-6">
+          <h3 className="font-medium text-portal-text mb-4">Your Enquiries</h3>
+          {enquiries.length === 0 ? (
+            <p className="text-portal-muted text-sm">No enquiries raised yet.</p>
+          ) : (
+            <ul className="space-y-4 text-sm">
+              {enquiries.map((e) => (
+                <li key={e.enquiry_id} className="border-b border-portal-panel-border/50 pb-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-portal-text font-medium">{e.subject}</p>
+                    <span className={`px-2.5 py-1 rounded-full text-xs shrink-0 ${
+                      e.status === "Open" ? "bg-portal-accent/15 text-portal-accent" : "bg-portal-success/15 text-portal-success"
+                    }`}>
+                      {e.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-portal-muted mt-0.5">{new Date(e.created_at).toLocaleString()}</p>
+                  <p className="text-portal-text mt-1">{e.message}</p>
+                  {e.response && (
+                    <div className="mt-2 pl-3 border-l-2 border-portal-success/40">
+                      <p className="text-xs text-portal-muted">
+                        State Admin response{e.responded_at ? ` · ${new Date(e.responded_at).toLocaleString()}` : ""}
+                      </p>
+                      <p className="text-portal-text">{e.response}</p>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {selectedAdmin && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-portal-panel border border-portal-panel-border rounded-xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium text-portal-text">{selectedAdmin.admin_name}</h3>
+              <button onClick={() => setSelectedAdmin(null)} className="text-portal-muted hover:text-portal-text">✕</button>
+            </div>
+            <dl className="grid grid-cols-2 gap-3 text-sm">
+              <div><dt className="text-portal-muted">Email</dt><dd className="text-portal-text">{selectedAdmin.admin_email}</dd></div>
+              <div><dt className="text-portal-muted">Status</dt><dd className="text-portal-text">{selectedAdmin.admin_status || "—"}</dd></div>
+              <div><dt className="text-portal-muted">Municipality</dt><dd className="text-portal-text">{selectedAdmin.local_body_name} ({selectedAdmin.type_name})</dd></div>
+              <div><dt className="text-portal-muted">District</dt><dd className="text-portal-text">{selectedAdmin.district_name}</dd></div>
+              {selectedAdmin.office_address && (
+                <div className="col-span-2"><dt className="text-portal-muted">Office Address</dt><dd className="text-portal-text">{selectedAdmin.office_address}</dd></div>
+              )}
+              {selectedAdmin.admin_created_at && (
+                <div><dt className="text-portal-muted">Admin Since</dt><dd className="text-portal-text">{new Date(selectedAdmin.admin_created_at).toLocaleDateString()}</dd></div>
+              )}
+            </dl>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

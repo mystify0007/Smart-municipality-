@@ -164,7 +164,8 @@ async function getMyProvince(req, res) {
       `SELECT m.municipality_id, m.office_address, m.contact_email, m.contact_phone,
               lb.local_body_id, lb.name AS local_body_name, t.name AS type_name,
               d.district_id, d.name AS district_name,
-              a.user_id AS admin_user_id, a.full_name AS admin_name, a.email AS admin_email
+              a.user_id AS admin_user_id, a.full_name AS admin_name, a.email AS admin_email,
+              a.status AS admin_status, a.created_at AS admin_created_at
        FROM municipalities m
        JOIN local_bodies lb ON m.local_body_id = lb.local_body_id
        JOIN local_level_types t ON lb.local_level_type_id = t.local_level_type_id
@@ -185,16 +186,45 @@ async function getMyProvince(req, res) {
 
 // GET /api/admin/state — the State Admin's oversight dashboard: all 7
 // Provinces with their Province Admin (and that Admin's Active/Blocked
-// status, so the State Admin can manage them), if one has been created yet.
+// status, so the State Admin can manage them), plus a work-throughput
+// rollup of every Municipality under that Province — this is how the State
+// Admin sees "how a Province is doing" without visiting each Municipality.
+// COUNT(DISTINCT ...) matters here: joining users, certificates, and
+// complaints onto the same municipality in one query multiplies rows
+// (a fan-out), so a plain COUNT would over-count everything.
 async function getStateOverview(req, res) {
   try {
     const [provinceRows] = await pool.query(
       `SELECT p.province_id, p.name, p.nepali_name,
               a.user_id AS admin_user_id, a.full_name AS admin_name, a.email AS admin_email,
-              a.status AS admin_status
+              a.status AS admin_status,
+              COALESCE(stats.municipality_count, 0) AS municipality_count,
+              COALESCE(stats.citizen_count, 0) AS citizen_count,
+              COALESCE(stats.officer_count, 0) AS officer_count,
+              COALESCE(stats.pending_certificates, 0) AS pending_certificates,
+              COALESCE(stats.completed_certificates, 0) AS completed_certificates,
+              COALESCE(stats.pending_complaints, 0) AS pending_complaints,
+              COALESCE(stats.resolved_complaints, 0) AS resolved_complaints
        FROM provinces p
        LEFT JOIN users a
          ON a.province_id = p.province_id AND a.role = 'Admin' AND a.admin_scope = 'Province'
+       LEFT JOIN (
+         SELECT d.province_id,
+                COUNT(DISTINCT m.municipality_id) AS municipality_count,
+                COUNT(DISTINCT CASE WHEN u.role = 'Citizen' THEN u.user_id END) AS citizen_count,
+                COUNT(DISTINCT CASE WHEN u.role = 'Officer' THEN u.user_id END) AS officer_count,
+                COUNT(DISTINCT CASE WHEN c.status IN ('Pending', 'Processing') THEN c.certificate_id END) AS pending_certificates,
+                COUNT(DISTINCT CASE WHEN c.status = 'Completed' THEN c.certificate_id END) AS completed_certificates,
+                COUNT(DISTINCT CASE WHEN cp.status IN ('Pending', 'In Progress', 'Escalated') THEN cp.complaint_id END) AS pending_complaints,
+                COUNT(DISTINCT CASE WHEN cp.status IN ('Resolved', 'Closed') THEN cp.complaint_id END) AS resolved_complaints
+         FROM municipalities m
+         JOIN local_bodies lb ON m.local_body_id = lb.local_body_id
+         JOIN districts d ON lb.district_id = d.district_id
+         LEFT JOIN users u ON u.municipality_id = m.municipality_id AND u.role IN ('Citizen', 'Officer')
+         LEFT JOIN certificates c ON c.municipality_id = m.municipality_id
+         LEFT JOIN complaints cp ON cp.municipality_id = m.municipality_id
+         GROUP BY d.province_id
+       ) stats ON stats.province_id = p.province_id
        ORDER BY p.province_id ASC`
     );
     res.json({ success: true, provinces: provinceRows });
