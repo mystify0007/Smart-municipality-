@@ -63,7 +63,7 @@ export default function Complaints() {
               <label className="block text-sm text-portal-muted mb-1.5">Subject</label>
               <input
                 required value={subject} onChange={(e) => setSubject(e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
             <div>
@@ -71,14 +71,14 @@ export default function Complaints() {
               <input
                 value={location} onChange={(e) => setLocation(e.target.value)}
                 placeholder="e.g. Ward 5"
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
             <div>
               <label className="block text-sm text-portal-muted mb-1.5">Description</label>
               <textarea
                 required rows={4} value={description} onChange={(e) => setDescription(e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
             <div>

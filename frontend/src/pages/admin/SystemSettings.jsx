@@ -113,14 +113,14 @@ export default function SystemSettings() {
               <label className="block text-sm text-portal-muted mb-1.5">Municipality Name</label>
               <input
                 value={settings.municipality_name} onChange={(e) => updateSetting("municipality_name", e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
             <div>
               <label className="block text-sm text-portal-muted mb-1.5">Address</label>
               <input
                 value={settings.municipality_address} onChange={(e) => updateSetting("municipality_address", e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -128,14 +128,14 @@ export default function SystemSettings() {
                 <label className="block text-sm text-portal-muted mb-1.5">Contact Email</label>
                 <input
                   type="email" value={settings.contact_email} onChange={(e) => updateSetting("contact_email", e.target.value)}
-                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                  className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 />
               </div>
               <div>
                 <label className="block text-sm text-portal-muted mb-1.5">Contact Phone</label>
                 <input
                   value={settings.contact_phone} onChange={(e) => updateSetting("contact_phone", e.target.value)}
-                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                  className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 />
               </div>
             </div>
@@ -169,12 +169,12 @@ export default function SystemSettings() {
               <input
                 required placeholder="Department name" value={deptForm.name}
                 onChange={(e) => setDeptForm((f) => ({ ...f, name: e.target.value }))}
-                className="rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2 text-sm text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2 text-sm text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
               <input
                 placeholder="Description (optional)" value={deptForm.description}
                 onChange={(e) => setDeptForm((f) => ({ ...f, description: e.target.value }))}
-                className="rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2 text-sm text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2 text-sm text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
             <div className="flex gap-2">

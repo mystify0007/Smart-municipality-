@@ -88,21 +88,21 @@ export default function AdminNotices() {
               <label className="block text-sm text-portal-muted mb-1.5">Title</label>
               <input
                 required value={form.title} onChange={(e) => update("title", e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
             <div>
               <label className="block text-sm text-portal-muted mb-1.5">Body</label>
               <textarea
                 required rows={4} value={form.description} onChange={(e) => update("description", e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
             <div>
               <label className="block text-sm text-portal-muted mb-1.5">Audience</label>
               <select
                 value={form.target_role} onChange={(e) => update("target_role", e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               >
                 {TARGET_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>

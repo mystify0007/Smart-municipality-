@@ -138,7 +138,7 @@ export default function HomePage() {
             <input
               type="text"
               placeholder="Search services..."
-              className="flex-1 rounded-lg bg-[#0b1120]/70 border border-portal-panel-border px-4 py-3 text-portal-text placeholder-portal-muted focus:outline-none focus:ring-2 focus:ring-portal-primary"
+              className="flex-1 rounded-lg bg-portal-bg/70 border border-portal-panel-border px-4 py-3 text-portal-text placeholder-portal-muted focus:outline-none focus:ring-2 focus:ring-portal-primary"
             />
 
             <button className="bg-portal-primary hover:bg-portal-primary-hover text-white font-medium px-6 rounded-lg transition-colors">

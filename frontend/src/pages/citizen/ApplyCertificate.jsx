@@ -49,7 +49,7 @@ export default function ApplyCertificate() {
             <label className="block text-sm text-portal-muted mb-1.5">Certificate Type</label>
             <select
               value={certificateType} onChange={(e) => setCertificateType(e.target.value)}
-              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+              className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
             >
               {CERTIFICATE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
@@ -60,7 +60,7 @@ export default function ApplyCertificate() {
             <input
               required value={purpose} onChange={(e) => setPurpose(e.target.value)}
               placeholder="e.g. Bank account opening"
-              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
+              className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
             />
           </div>
 

@@ -124,7 +124,7 @@ export default function OfficerComplaints() {
                       <select
                         value={draft.status}
                         onChange={(e) => updateDraft(c, { status: e.target.value })}
-                        className="text-sm rounded-lg bg-[#0b1120] border border-portal-panel-border px-2.5 py-2 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                        className="text-sm rounded-lg bg-portal-bg border border-portal-panel-border px-2.5 py-2 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                       >
                         {STATUS_OPTIONS.map((s) => (
                           <option key={s} value={s}>{s}</option>
@@ -135,7 +135,7 @@ export default function OfficerComplaints() {
                         placeholder="Response to citizen (optional)"
                         value={draft.response}
                         onChange={(e) => updateDraft(c, { response: e.target.value })}
-                        className="text-sm rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                        className="text-sm rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
                       />
                       <button
                         onClick={() => handleSave(c)}

@@ -60,7 +60,7 @@ export default function Login() {
               id="email" type="email" required value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
+              className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
             />
           </div>
 
@@ -71,7 +71,7 @@ export default function Login() {
                 id="password" type={showPassword ? "text" : "password"} required value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 pr-10 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 pr-10 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
               <button
                 type="button" onClick={() => setShowPassword((s) => !s)}

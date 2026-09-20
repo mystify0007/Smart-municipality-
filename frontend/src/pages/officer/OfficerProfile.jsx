@@ -101,14 +101,14 @@ export default function OfficerProfile() {
                 <label className="block text-sm text-portal-muted mb-1.5">Phone</label>
                 <input
                   value={phone} onChange={(e) => setPhone(e.target.value)}
-                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                  className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 />
               </div>
               <div>
                 <label className="block text-sm text-portal-muted mb-1.5">Address</label>
                 <input
                   value={address} onChange={(e) => setAddress(e.target.value)}
-                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                  className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 />
               </div>
 
@@ -139,7 +139,7 @@ export default function OfficerProfile() {
                 <input
                   type="password" required value={passwordForm.current_password}
                   onChange={(e) => setPasswordForm((f) => ({ ...f, current_password: e.target.value }))}
-                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                  className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 />
               </div>
               <div>
@@ -147,7 +147,7 @@ export default function OfficerProfile() {
                 <input
                   type="password" required value={passwordForm.new_password}
                   onChange={(e) => setPasswordForm((f) => ({ ...f, new_password: e.target.value }))}
-                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                  className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 />
               </div>
 

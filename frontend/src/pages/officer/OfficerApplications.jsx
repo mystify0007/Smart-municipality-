@@ -139,7 +139,7 @@ export default function OfficerApplications() {
                     <select
                       value={draft.status}
                       onChange={(e) => updateDraft(item, { status: e.target.value })}
-                      className="text-sm rounded-lg bg-[#0b1120] border border-portal-panel-border px-2.5 py-2 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                      className="text-sm rounded-lg bg-portal-bg border border-portal-panel-border px-2.5 py-2 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                     >
                       {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -148,7 +148,7 @@ export default function OfficerApplications() {
                       placeholder="Remarks"
                       value={draft.remarks}
                       onChange={(e) => updateDraft(item, { remarks: e.target.value })}
-                      className="text-sm rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                      className="text-sm rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
                     />
                     <button
                       onClick={() => handleSave(item)}
@@ -171,7 +171,7 @@ export default function OfficerApplications() {
             <textarea
               rows={3} value={infoMessage} onChange={(e) => setInfoMessage(e.target.value)}
               placeholder="What does the citizen need to provide?"
-              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary mb-4"
+              className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary mb-4"
             />
             <div className="flex justify-end gap-2">
               <button

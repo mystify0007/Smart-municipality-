@@ -130,7 +130,7 @@ export default function ComplaintManagement() {
                   <select
                     value={assignDrafts[c.complaint_id] || ""}
                     onChange={(e) => setAssignDrafts((prev) => ({ ...prev, [c.complaint_id]: e.target.value }))}
-                    className="text-xs rounded-lg bg-[#0b1120] border border-portal-panel-border px-2 py-1.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                    className="text-xs rounded-lg bg-portal-bg border border-portal-panel-border px-2 py-1.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                   >
                     <option value="">Select officer</option>
                     {officers.map((o) => <option key={o.user_id} value={o.user_id}>{o.full_name}</option>)}

@@ -90,14 +90,14 @@ export default function MyProducts() {
               <label className="block text-sm text-portal-muted mb-1.5">Product Name</label>
               <input
                 required value={name} onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
             <div>
               <label className="block text-sm text-portal-muted mb-1.5">Category</label>
               <select
                 required value={categoryId} onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               >
                 {categories.map((c) => (
                   <option key={c.category_id} value={c.category_id}>{c.category_name}</option>
@@ -109,14 +109,14 @@ export default function MyProducts() {
                 <label className="block text-sm text-portal-muted mb-1.5">Price (Rs.)</label>
                 <input
                   type="number" required value={price} onChange={(e) => setPrice(e.target.value)}
-                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                  className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 />
               </div>
               <div>
                 <label className="block text-sm text-portal-muted mb-1.5">Stock</label>
                 <input
                   type="number" value={stock} onChange={(e) => setStock(e.target.value)}
-                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                  className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 />
               </div>
             </div>
@@ -124,7 +124,7 @@ export default function MyProducts() {
               <label className="block text-sm text-portal-muted mb-1.5">Description</label>
               <textarea
                 rows={3} value={description} onChange={(e) => setDescription(e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
             <div>

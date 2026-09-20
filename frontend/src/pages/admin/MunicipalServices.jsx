@@ -120,14 +120,14 @@ export default function MunicipalServices() {
               <label className="block text-sm text-portal-muted mb-1.5">Service Name</label>
               <input
                 required value={form.name} onChange={(e) => update("name", e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
             <div>
               <label className="block text-sm text-portal-muted mb-1.5">Description</label>
               <textarea
                 rows={2} value={form.description} onChange={(e) => update("description", e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
             <div>
@@ -135,7 +135,7 @@ export default function MunicipalServices() {
               <input
                 value={form.required_documents} onChange={(e) => update("required_documents", e.target.value)}
                 placeholder="e.g. Citizenship copy, Photo"
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -143,14 +143,14 @@ export default function MunicipalServices() {
                 <label className="block text-sm text-portal-muted mb-1.5">Fee (Rs.)</label>
                 <input
                   type="number" min="0" step="0.01" value={form.fee} onChange={(e) => update("fee", e.target.value)}
-                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                  className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 />
               </div>
               <div>
                 <label className="block text-sm text-portal-muted mb-1.5">Department</label>
                 <select
                   value={form.department_id} onChange={(e) => update("department_id", e.target.value)}
-                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                  className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 >
                   <option value="">—</option>
                   {departments.map((d) => <option key={d.department_id} value={d.department_id}>{d.name}</option>)}
@@ -161,7 +161,7 @@ export default function MunicipalServices() {
               <label className="block text-sm text-portal-muted mb-1.5">Responsible Officer</label>
               <select
                 value={form.assigned_officer_id} onChange={(e) => update("assigned_officer_id", e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               >
                 <option value="">—</option>
                 {officers.map((o) => <option key={o.user_id} value={o.user_id}>{o.full_name}</option>)}

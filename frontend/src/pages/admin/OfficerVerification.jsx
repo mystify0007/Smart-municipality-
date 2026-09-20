@@ -168,7 +168,7 @@ export default function OfficerVerification() {
             <textarea
               rows={3} value={rejectReason} onChange={(e) => setRejectReason(e.target.value)}
               placeholder="Reason for rejection"
-              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary mb-4"
+              className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary mb-4"
             />
             <div className="flex justify-end gap-2">
               <button

@@ -59,7 +59,7 @@ export default function TaxPayment() {
               <label className="block text-sm text-portal-muted mb-1.5">Tax Type</label>
               <select
                 value={taxType} onChange={(e) => setTaxType(e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               >
                 {TAX_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
@@ -68,14 +68,14 @@ export default function TaxPayment() {
               <label className="block text-sm text-portal-muted mb-1.5">Amount (Rs.)</label>
               <input
                 type="number" required min="1" value={amount} onChange={(e) => setAmount(e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
             <div>
               <label className="block text-sm text-portal-muted mb-1.5">Payment Method</label>
               <select
                 value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               >
                 {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>

@@ -54,7 +54,7 @@ export default function Register() {
             <label className="block text-sm text-portal-muted mb-1.5">{t("register.iAmA")}</label>
             <select
               value={form.role} onChange={(e) => update("role", e.target.value)}
-              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+              className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
             >
               {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
@@ -64,7 +64,7 @@ export default function Register() {
             <label className="block text-sm text-portal-muted mb-1.5">{t("register.fullName")}</label>
             <input
               required value={form.full_name} onChange={(e) => update("full_name", e.target.value)}
-              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+              className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
             />
           </div>
 
@@ -72,7 +72,7 @@ export default function Register() {
             <label className="block text-sm text-portal-muted mb-1.5">Email</label>
             <input
               type="email" required value={form.email} onChange={(e) => update("email", e.target.value)}
-              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+              className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
             />
           </div>
 
@@ -81,14 +81,14 @@ export default function Register() {
               <label className="block text-sm text-portal-muted mb-1.5">{t("register.phone")}</label>
               <input
                 value={form.phone} onChange={(e) => update("phone", e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
             <div>
               <label className="block text-sm text-portal-muted mb-1.5">{t("login.password")}</label>
               <input
                 type="password" required value={form.password} onChange={(e) => update("password", e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
           </div>
@@ -97,7 +97,7 @@ export default function Register() {
             <label className="block text-sm text-portal-muted mb-1.5">{t("register.address")}</label>
             <input
               value={form.address} onChange={(e) => update("address", e.target.value)}
-              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+              className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
             />
           </div>
 
@@ -106,7 +106,7 @@ export default function Register() {
               <label className="block text-sm text-portal-muted mb-1.5">Citizenship No. (optional)</label>
               <input
                 value={form.citizenship_no} onChange={(e) => update("citizenship_no", e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
           )}
@@ -118,14 +118,14 @@ export default function Register() {
                 <label className="block text-sm text-portal-muted mb-1.5">Business Name</label>
                 <input
                   required value={form.business_name} onChange={(e) => update("business_name", e.target.value)}
-                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                  className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 />
               </div>
               <div>
                 <label className="block text-sm text-portal-muted mb-1.5">Owner Name</label>
                 <input
                   required value={form.owner_name} onChange={(e) => update("owner_name", e.target.value)}
-                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                  className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -134,14 +134,14 @@ export default function Register() {
                   <input
                     value={form.business_type} onChange={(e) => update("business_type", e.target.value)}
                     placeholder="e.g. Grocery"
-                    className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                    className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-portal-muted mb-1.5">PAN Number</label>
                   <input
                     value={form.pan_number} onChange={(e) => update("pan_number", e.target.value)}
-                    className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+                    className="w-full rounded-lg bg-portal-bg border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                   />
                 </div>
               </div>
