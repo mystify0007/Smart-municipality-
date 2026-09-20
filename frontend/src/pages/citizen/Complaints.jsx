@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/DashboardLayout";
+import LocationPickerModal from "../../components/LocationPickerModal";
 import api from "../../api/axios";
 import { useLanguage } from "../../context/LanguageContext";
 
@@ -17,8 +18,7 @@ export default function Complaints() {
   const [media, setMedia] = useState(null);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [locating, setLocating] = useState(false);
-  const [locationError, setLocationError] = useState("");
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   async function loadComplaints() {
     try {
@@ -27,45 +27,6 @@ export default function Complaints() {
     } finally {
       setLoading(false);
     }
-  }
-
-  function detectLocation() {
-    if (!navigator.geolocation) {
-      setLocationError("Geolocation isn't supported by your browser. Please type your location manually.");
-      return;
-    }
-    setLocating(true);
-    setLocationError("");
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        const coordsText = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-        let address = "";
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
-            { headers: { Accept: "application/json" } }
-          );
-          if (res.ok) {
-            const data = await res.json();
-            address = data.display_name || "";
-          }
-        } catch {
-          // Reverse geocoding is best-effort; the raw coordinates below are enough on their own.
-        }
-        setLocation((address ? `${address} (${coordsText})` : coordsText).slice(0, 255));
-        setLocating(false);
-      },
-      (err) => {
-        setLocating(false);
-        setLocationError(
-          err.code === err.PERMISSION_DENIED
-            ? "Location permission denied. Please enable it or type your location manually."
-            : "Couldn't detect your location. Please type it manually."
-        );
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-    );
   }
 
   useEffect(() => {
@@ -119,23 +80,19 @@ export default function Complaints() {
               <div className="flex gap-2">
                 <input
                   value={location} onChange={(e) => setLocation(e.target.value)}
-                  placeholder={locating ? "Detecting your current location..." : "e.g. Ward 5, Suryabinayak"}
+                  placeholder="e.g. Ward 5, Suryabinayak"
                   className="flex-1 rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 />
                 <button
-                  type="button" onClick={detectLocation} disabled={locating}
-                  className="shrink-0 px-3 py-2.5 rounded-lg bg-portal-primary/80 hover:bg-portal-primary disabled:opacity-60 text-white text-sm whitespace-nowrap"
+                  type="button" onClick={() => setShowLocationPicker(true)}
+                  className="shrink-0 px-3 py-2.5 rounded-lg bg-portal-primary/80 hover:bg-portal-primary text-white text-sm whitespace-nowrap"
                 >
-                  {locating ? "Detecting..." : "📍 Use my location"}
+                  🗺️ Browse map
                 </button>
               </div>
-              {locationError ? (
-                <p className="text-xs text-portal-danger mt-1">{locationError}</p>
-              ) : (
-                <p className="text-xs text-portal-muted mt-1">
-                  Type the location yourself, or click "Use my location" to fill it in from your GPS.
-                </p>
-              )}
+              <p className="text-xs text-portal-muted mt-1">
+                Type the location yourself, or click "Browse map" to pick the exact spot.
+              </p>
             </div>
             <div>
               <label className="block text-sm text-portal-muted mb-1.5">Description</label>
@@ -216,6 +173,13 @@ export default function Complaints() {
           )}
         </div>
       </div>
+
+      {showLocationPicker && (
+        <LocationPickerModal
+          onConfirm={(value) => { setLocation(value); setShowLocationPicker(false); }}
+          onClose={() => setShowLocationPicker(false)}
+        />
+      )}
     </DashboardLayout>
   );
 }
