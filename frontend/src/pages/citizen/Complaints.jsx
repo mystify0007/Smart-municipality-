@@ -70,7 +70,6 @@ export default function Complaints() {
 
   useEffect(() => {
     loadComplaints();
-    detectLocation();
   }, []);
 
   async function handleSubmit(e) {
@@ -90,9 +89,9 @@ export default function Complaints() {
       setMessage({ type: "success", text: "Complaint submitted." });
       setSubject("");
       setDescription("");
+      setLocation("");
       setMedia(null);
       loadComplaints();
-      detectLocation();
     } catch (err) {
       setMessage({ type: "error", text: err.response?.data?.error || "Failed to submit" });
     }
@@ -120,21 +119,21 @@ export default function Complaints() {
               <div className="flex gap-2">
                 <input
                   value={location} onChange={(e) => setLocation(e.target.value)}
-                  placeholder={locating ? "Detecting your current location..." : "e.g. Ward 5"}
+                  placeholder={locating ? "Detecting your current location..." : "e.g. Ward 5, Suryabinayak"}
                   className="flex-1 rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 />
                 <button
                   type="button" onClick={detectLocation} disabled={locating}
                   className="shrink-0 px-3 py-2.5 rounded-lg bg-portal-primary/80 hover:bg-portal-primary disabled:opacity-60 text-white text-sm whitespace-nowrap"
                 >
-                  {locating ? "Detecting..." : "📍 Detect"}
+                  {locating ? "Detecting..." : "📍 Use my location"}
                 </button>
               </div>
               {locationError ? (
                 <p className="text-xs text-portal-danger mt-1">{locationError}</p>
               ) : (
                 <p className="text-xs text-portal-muted mt-1">
-                  {locating ? "Getting your live location…" : location ? "Live location captured — edit above if needed." : "We'll auto-fill this with your live GPS location."}
+                  Type the location yourself, or click "Use my location" to fill it in from your GPS.
                 </p>
               )}
             </div>
