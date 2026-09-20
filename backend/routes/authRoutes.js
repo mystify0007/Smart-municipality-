@@ -15,8 +15,9 @@ router.post("/staff/register", uploadOfficerDocs.array("documents", 5), staffReg
 router.post("/staff/login", staffLogin);
 
 // Admin bootstrap — not linked from any UI, see authController.js. The only
-// way a Province Admin account is ever created; a Province Admin then
-// creates Municipality Admins themselves via POST /api/admin/municipality-admins.
+// way the single State Admin account is ever created; the State Admin then
+// creates Province Admins via POST /api/admin/province-admins, who each
+// create Municipality Admins via POST /api/admin/municipality-admins.
 router.post("/admin/bootstrap", adminBootstrap);
 
 // Shared — any authenticated role

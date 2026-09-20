@@ -25,6 +25,7 @@ import OfficerReports from "./pages/officer/OfficerReports";
 import OfficerProfile from "./pages/officer/OfficerProfile";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import StateDashboard from "./pages/admin/StateDashboard";
 import ProvinceDashboard from "./pages/admin/ProvinceDashboard";
 import OfficerVerification from "./pages/admin/OfficerVerification";
 import CitizenManagement from "./pages/admin/CitizenManagement";
@@ -85,6 +86,11 @@ export default function App() {
           } />
           <Route path="/officer/profile" element={
             <ProtectedRoute allowedRoles={["Officer"]}><OfficerProfile /></ProtectedRoute>
+          } />
+
+          {/* State Admin — oversees every Province */}
+          <Route path="/admin/state/dashboard" element={
+            <ProtectedRoute allowedRoles={["Admin"]} allowedAdminScopes={["State"]}><StateDashboard /></ProtectedRoute>
           } />
 
           {/* Province Admin — oversees every Municipality in one Province */}

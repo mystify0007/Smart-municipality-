@@ -122,8 +122,10 @@ DELETE FROM users WHERE role = 'Business';
 
 -- ---------------------------------------------------------------------------
 -- 4. users: drop the Business role, scope every account to a Municipality
---    (or, for a Province Admin, to a Province instead). admin_scope is NULL
---    for Citizen/Officer and only ever set for role='Admin':
+--    (or, for a Province/State Admin, one level higher instead). admin_scope
+--    is NULL for Citizen/Officer and only ever set for role='Admin', mirroring
+--    Nepal's own three government layers:
+--      'State'        -> province_id NULL, municipality_id NULL (oversees everything)
 --      'Province'     -> province_id set, municipality_id NULL
 --      'Municipality' -> municipality_id set, province_id NULL
 -- ---------------------------------------------------------------------------
@@ -131,7 +133,7 @@ ALTER TABLE users
   MODIFY COLUMN role ENUM('Citizen','Officer','Admin') NOT NULL;
 
 ALTER TABLE users
-  ADD COLUMN admin_scope ENUM('Province','Municipality') NULL AFTER role,
+  ADD COLUMN admin_scope ENUM('State','Province','Municipality') NULL AFTER role,
   ADD COLUMN province_id INT NULL AFTER admin_scope,
   ADD COLUMN municipality_id INT NULL AFTER province_id,
   ADD CONSTRAINT fk_users_province

@@ -7,10 +7,14 @@ const DEFAULT_ROUTE_BY_ROLE = {
   Admin: "/admin/dashboard",
 };
 
-// Admin has two scopes (Province oversees Municipalities, Municipality runs
-// one day-to-day) that live under separate route trees — a role match alone
-// isn't enough to know which dashboard an Admin belongs on.
+// Admin has three scopes (State oversees Provinces, Province oversees
+// Municipalities, Municipality runs one day-to-day) that live under separate
+// route trees — a role match alone isn't enough to know which dashboard an
+// Admin belongs on.
 export function defaultRouteFor(user) {
+  if (user?.role === "Admin" && user.admin_scope === "State") {
+    return "/admin/state/dashboard";
+  }
   if (user?.role === "Admin" && user.admin_scope === "Province") {
     return "/admin/province/dashboard";
   }

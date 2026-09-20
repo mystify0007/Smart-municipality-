@@ -38,14 +38,22 @@ const NAV_ITEMS = {
   ProvinceAdmin: [
     { key: "nav.provinceOverview", path: "/admin/province/dashboard" },
   ],
+  StateAdmin: [
+    { key: "nav.stateOverview", path: "/admin/state/dashboard" },
+  ],
 };
+
+function navKeyFor(user) {
+  if (user?.role === "Admin" && user.admin_scope === "State") return "StateAdmin";
+  if (user?.role === "Admin" && user.admin_scope === "Province") return "ProvinceAdmin";
+  return user?.role;
+}
 
 export default function DashboardLayout({ children, title }) {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
   const location = useLocation();
-  const navKey = user?.role === "Admin" && user?.admin_scope === "Province" ? "ProvinceAdmin" : user?.role;
-  const navItems = NAV_ITEMS[navKey] || [];
+  const navItems = NAV_ITEMS[navKeyFor(user)] || [];
 
   return (
     <div className="min-h-screen portal-photo-bg flex">

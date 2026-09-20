@@ -20,7 +20,9 @@ const {
   getSettings, updateSettings,
 } = require("../controllers/settingsController");
 
-const { getMyMunicipality, updateMyMunicipality, getMyProvince } = require("../controllers/locationController");
+const {
+  getMyMunicipality, updateMyMunicipality, getMyProvince, getStateOverview,
+} = require("../controllers/locationController");
 
 const { adminListApplications, assignApplication } = require("../controllers/certificateController");
 const {
@@ -29,17 +31,29 @@ const {
 const { getSystemReports } = require("../controllers/reportsController");
 
 const { verifyToken, requireRole, requireAdminScope } = require("../middleware/authMiddleware");
-const { createMunicipalityAdmin } = require("../controllers/authController");
+const { createProvinceAdmin, createMunicipalityAdmin } = require("../controllers/authController");
 
-// Every route below (other than /municipality-admins) is scoped to a
-// Municipality Admin — this file is the entire surface of "Full system
-// access" from the access-control spec, but only over that Admin's own
-// Municipality. A Province Admin's token is rejected here outright rather
-// than being allowed to run these queries against a NULL municipality_id.
-// Officer never appears in any requireRole() call here.
+// Every route below (other than /state, /province-admins, /province,
+// /municipality-admins) is scoped to a Municipality Admin — this file is the
+// entire surface of "Full system access" from the access-control spec, but
+// only over that Admin's own Municipality. A Province or State Admin's
+// token is rejected here outright rather than being allowed to run these
+// queries against a NULL municipality_id. Officer never appears in any
+// requireRole() call here.
 
 // Dashboard overview
 router.get("/stats", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), getAdminStats);
+
+// State Admin's own privileges — oversee every Province, and create each
+// Province's one Admin account.
+router.get("/state", verifyToken, requireRole("Admin"), requireAdminScope("State"), getStateOverview);
+router.post(
+  "/province-admins",
+  verifyToken,
+  requireRole("Admin"),
+  requireAdminScope("State"),
+  createProvinceAdmin
+);
 
 // Province Admin's own privileges — oversee every Municipality onboarded in
 // their Province, and onboard a new Local Body by creating its one

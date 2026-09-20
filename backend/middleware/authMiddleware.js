@@ -35,11 +35,13 @@ function requireRole(...allowedRoles) {
   };
 }
 
-// requireAdminScope("Province" | "Municipality") — stack AFTER
-// requireRole("Admin"). There are two kinds of Admin: a Province Admin
-// (province_id set, oversees every Municipality in that Province) and a
+// requireAdminScope("State" | "Province" | "Municipality") — stack AFTER
+// requireRole("Admin"). There are three kinds of Admin, mirroring Nepal's
+// own three government layers: a State Admin (province_id AND
+// municipality_id both NULL, oversees every Province), a Province Admin
+// (province_id set, oversees every Municipality in that Province), and a
 // Municipality Admin (municipality_id set, runs one Municipality day to
-// day). Routes built for one scope must reject the other outright rather
+// day). Routes built for one scope must reject the others outright rather
 // than silently running a query against a NULL id and returning nothing.
 function requireAdminScope(scope) {
   return function (req, res, next) {

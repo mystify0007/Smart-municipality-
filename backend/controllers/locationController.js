@@ -183,7 +183,26 @@ async function getMyProvince(req, res) {
   }
 }
 
+// GET /api/admin/state — the State Admin's oversight dashboard: all 7
+// Provinces with their Province Admin, if one has been created yet.
+async function getStateOverview(req, res) {
+  try {
+    const [provinceRows] = await pool.query(
+      `SELECT p.province_id, p.name, p.nepali_name,
+              a.user_id AS admin_user_id, a.full_name AS admin_name, a.email AS admin_email
+       FROM provinces p
+       LEFT JOIN users a
+         ON a.province_id = p.province_id AND a.role = 'Admin' AND a.admin_scope = 'Province'
+       ORDER BY p.province_id ASC`
+    );
+    res.json({ success: true, provinces: provinceRows });
+  } catch (err) {
+    console.error("Get state overview error:", err);
+    res.status(500).json({ success: false, error: "Failed to fetch state overview" });
+  }
+}
+
 module.exports = {
   listProvinces, listDistricts, listLocalBodies, listMunicipalities,
-  getMyMunicipality, updateMyMunicipality, getMyProvince,
+  getMyMunicipality, updateMyMunicipality, getMyProvince, getStateOverview,
 };

@@ -1,6 +1,9 @@
 // controllers/authController.js
 // users: user_id, full_name, email, phone, password, role ('Citizen'|'Officer'|'Admin'),
-//        municipality_id, address, department, designation,
+//        admin_scope ('State'|'Province'|'Municipality', Admin only),
+//        province_id (State: NULL, Province: set, Municipality: NULL),
+//        municipality_id (State/Province: NULL, Municipality: set),
+//        address, department, designation,
 //        officer_status ('Pending'|'Approved'|'Rejected'|'Suspended'),
 //        rejection_reason, verified_by, verified_at,
 //        citizenship_no, profile_image, created_at, status ('Active'|'Blocked')
@@ -13,19 +16,24 @@
 //   /api/auth/staff/register + /api/auth/staff/login -> Officer only (register),
 //                                                        Officer + Admin (login)
 //   /api/auth/admin/bootstrap                         -> the ONLY way to
-//                                                        provision a Municipality's Admin
+//                                                        provision the single
+//                                                        State Admin account
 //
-// Admin is never a selectable role anywhere a normal user can reach. It is
-// provisioned once per Municipality, out-of-band, through adminBootstrap
-// below, which is gated by a secret key from the server's own .env and
-// refuses outright if that Municipality already has an Admin — backed by a
-// DB trigger (see migration_municipality_admin_trigger.sql) so even an
-// application bug can't create a second one for the same Municipality.
+// Admin is never a selectable role anywhere a normal user can reach, and has
+// three scopes mirroring Nepal's own three government layers: the State
+// Admin (exactly one, provisioned out-of-band through adminBootstrap below,
+// gated by a secret key from the server's own .env) creates Province Admins
+// via createProvinceAdmin, who each create Municipality Admins within their
+// own Province via createMunicipalityAdmin — so the shared bootstrap key is
+// only ever needed once. Every level refuses outright if that State/Province/
+// Municipality already has an Admin — backed by a DB trigger (see
+// migration_municipality_admin_trigger.sql) so even an application bug can't
+// create a second one for the same scope.
 //
-// Every account (Citizen, Officer, Admin) belongs to exactly one
-// Municipality. A Citizen or Officer can only register under a Municipality
-// that already exists on the platform (i.e. already has an Admin to serve
-// them) — see GET /api/locations/municipalities.
+// Citizen and Officer accounts each belong to exactly one Municipality. A
+// Citizen or Officer can only register under a Municipality that already
+// exists on the platform (i.e. already has an Admin to serve them) — see
+// GET /api/locations/municipalities.
 
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -380,16 +388,18 @@ async function staffLogin(req, res) {
 }
 
 // ---------------------------------------------------------------------------
-// ADMIN BOOTSTRAP — not linked from any UI. The only way to create a
-// Province Admin (there are at most 7, one per Province). A Province Admin
-// then creates Municipality Admins within their own Province themselves —
-// see createMunicipalityAdmin below — so the shared bootstrap key never has
-// to be handed out for every single Municipality.
+// ADMIN BOOTSTRAP — not linked from any UI. The only way to create the
+// State Admin (there is exactly one, at the top of Nepal's three government
+// layers — see the admin_scope note on signToken above). The State Admin
+// then creates Province Admins themselves — see createProvinceAdmin below —
+// who in turn create Municipality Admins — see createMunicipalityAdmin
+// further down — so the shared bootstrap key is only ever needed once, for
+// this single root account.
 // ---------------------------------------------------------------------------
 
 async function adminBootstrap(req, res) {
   try {
-    const { full_name, email, password, bootstrap_key, province_id } = req.body;
+    const { full_name, email, password, bootstrap_key } = req.body;
 
     if (!process.env.ADMIN_BOOTSTRAP_KEY) {
       return res.status(503).json({
@@ -401,6 +411,71 @@ async function adminBootstrap(req, res) {
     if (!bootstrap_key || bootstrap_key !== process.env.ADMIN_BOOTSTRAP_KEY) {
       return res.status(403).json({ success: false, error: "Invalid bootstrap key" });
     }
+
+    if (!full_name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: "full_name, email, and password are required",
+      });
+    }
+
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, error: "Invalid email format" });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
+    }
+
+    const [existingUser] = await pool.query("SELECT user_id FROM users WHERE email = ?", [email]);
+    if (existingUser.length > 0) {
+      return res.status(409).json({ success: false, error: "Email is already registered" });
+    }
+
+    const [[{ adminCount }]] = await pool.query(
+      "SELECT COUNT(*) AS adminCount FROM users WHERE role = 'Admin' AND admin_scope = 'State'"
+    );
+    if (adminCount > 0) {
+      return res.status(409).json({ success: false, error: "The system already has a State Admin account." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+    const [result] = await pool.query(
+      "INSERT INTO users (full_name, email, password, role, admin_scope) VALUES (?, ?, ?, 'Admin', 'State')",
+      [full_name, email, hashedPassword]
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "State Admin account created.",
+      user: {
+        user_id: result.insertId, full_name, email, role: "Admin",
+        admin_scope: "State",
+      },
+    });
+  } catch (err) {
+    // A DB trigger (migration_municipality_admin_trigger.sql) throws SQLSTATE
+    // 45000 if a race ever let two bootstrap calls both pass the COUNT(*)
+    // check above — this is the last line of defense against a second State
+    // Admin.
+    if (err && err.sqlState === "45000") {
+      return res.status(409).json({ success: false, error: "The system already has a State Admin account." });
+    }
+    console.error("Admin bootstrap error:", err);
+    return res.status(500).json({ success: false, error: "Failed to create admin account" });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// PROVINCE ADMIN CREATION — the State Admin's own privilege, not
+// self-service and not gated by the shared bootstrap key. Creates the one
+// Admin account for a Province (there are at most 7).
+// ---------------------------------------------------------------------------
+
+async function createProvinceAdmin(req, res) {
+  try {
+    const { full_name, email, password, province_id } = req.body;
 
     if (!full_name || !email || !password || !province_id) {
       return res.status(400).json({
@@ -450,15 +525,11 @@ async function adminBootstrap(req, res) {
       },
     });
   } catch (err) {
-    // A DB trigger (migration_municipality_admin_trigger.sql) throws SQLSTATE
-    // 45000 if a race ever let two bootstrap calls both pass the COUNT(*)
-    // check above — this is the last line of defense against a second Admin
-    // for the same Province.
     if (err && err.sqlState === "45000") {
       return res.status(409).json({ success: false, error: "This province already has an Admin account." });
     }
-    console.error("Admin bootstrap error:", err);
-    return res.status(500).json({ success: false, error: "Failed to create admin account" });
+    console.error("Create province admin error:", err);
+    return res.status(500).json({ success: false, error: "Failed to create province admin account" });
   }
 }
 
@@ -614,5 +685,5 @@ async function changePassword(req, res) {
 
 module.exports = {
   register, login, staffRegister, staffLogin,
-  adminBootstrap, createMunicipalityAdmin, changePassword,
+  adminBootstrap, createProvinceAdmin, createMunicipalityAdmin, changePassword,
 };
