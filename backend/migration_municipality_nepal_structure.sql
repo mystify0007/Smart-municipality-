@@ -11,6 +11,13 @@
 --   - Certificates/Complaints are scoped to the Municipality they were filed in
 --   - The Business role, and everything that only existed to serve it
 --     (marketplace, cart, orders, products, categories), is dropped.
+--
+-- Order matters a lot in this file: every table/row that references a
+-- Business-role user (or targets 'Business' in an ENUM) has to be cleaned up
+-- BEFORE the `users.role` column is narrowed to drop 'Business' from its
+-- ENUM — MySQL refuses ENUM truncation (#1265) if any existing row still
+-- holds the value being removed, and it refuses to DROP a still-referenced
+-- table's row via a parent DELETE if a foreign key would go dangling.
 
 -- ---------------------------------------------------------------------------
 -- 1. Nepal's official administrative hierarchy (reference data — populated by
@@ -67,7 +74,41 @@ CREATE TABLE IF NOT EXISTS municipalities (
 );
 
 -- ---------------------------------------------------------------------------
--- 3. users: drop the Business role, scope every account to a Municipality
+-- 3. Drop the Business role and everything that only served it — BEFORE any
+--    ENUM narrowing below, so nothing is left referencing a 'Business' row.
+--    Order matters: child tables (foreign keys) before their parents.
+-- ---------------------------------------------------------------------------
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS cart_items;
+DROP TABLE IF EXISTS cart;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS businesses;
+
+-- ---------------------------------------------------------------------------
+-- 3b. Any Business account may, under the old rules, have personally filed a
+--     certificate/complaint/tax payment or authored a notice — clean those up
+--     (or retarget them) before the account itself is deleted, otherwise the
+--     DELETE below fails on a dangling foreign key.
+-- ---------------------------------------------------------------------------
+DELETE FROM notifications WHERE user_id IN (SELECT user_id FROM users WHERE role = 'Business');
+DELETE FROM tax_payments WHERE user_id IN (SELECT user_id FROM users WHERE role = 'Business');
+DELETE FROM complaints WHERE user_id IN (SELECT user_id FROM users WHERE role = 'Business');
+DELETE FROM certificates WHERE user_id IN (SELECT user_id FROM users WHERE role = 'Business');
+DELETE FROM notices WHERE created_by IN (SELECT user_id FROM users WHERE role = 'Business');
+
+-- A notice/notification *targeting* 'Business' as an audience (rather than
+-- authored by one) is retargeted to 'All' rather than deleted, since the
+-- announcement content itself is still meaningful.
+UPDATE notices SET target_role = 'All' WHERE target_role = 'Business';
+UPDATE notifications SET role_target = 'All' WHERE role_target = 'Business';
+
+-- Now it is finally safe to remove the Business accounts themselves.
+DELETE FROM users WHERE role = 'Business';
+
+-- ---------------------------------------------------------------------------
+-- 4. users: drop the Business role, scope every account to a Municipality
 -- ---------------------------------------------------------------------------
 ALTER TABLE users
   MODIFY COLUMN role ENUM('Citizen','Officer','Admin') NOT NULL;
@@ -78,7 +119,7 @@ ALTER TABLE users
     FOREIGN KEY (municipality_id) REFERENCES municipalities(municipality_id);
 
 -- ---------------------------------------------------------------------------
--- 4. Certificates and complaints are scoped to the Municipality they were
+-- 5. Certificates and complaints are scoped to the Municipality they were
 --    filed in, so each Municipality's Admin only ever sees their own work.
 -- ---------------------------------------------------------------------------
 ALTER TABLE certificates
@@ -92,7 +133,7 @@ ALTER TABLE complaints
     FOREIGN KEY (municipality_id) REFERENCES municipalities(municipality_id);
 
 -- ---------------------------------------------------------------------------
--- 4b. Departments and municipal services are each Municipality's own
+-- 5b. Departments and municipal services are each Municipality's own
 --     internal structure now, not one global list — two different
 --     Municipalities both having a "Revenue" department is normal, so the
 --     old global UNIQUE(name) has to become UNIQUE(name, municipality_id).
@@ -110,8 +151,9 @@ ALTER TABLE municipal_services
     FOREIGN KEY (municipality_id) REFERENCES municipalities(municipality_id);
 
 -- ---------------------------------------------------------------------------
--- 5. Announcements no longer have a Business audience, and are scoped to the
---    Municipality that published them.
+-- 6. Announcements no longer have a Business audience, and are scoped to the
+--    Municipality that published them. (Any pre-existing 'Business'-targeted
+--    notice was already retargeted to 'All' in step 3b, above.)
 -- ---------------------------------------------------------------------------
 ALTER TABLE notices
   MODIFY COLUMN target_role ENUM('All','Citizen','Officer') NOT NULL DEFAULT 'All',
@@ -120,29 +162,17 @@ ALTER TABLE notices
     FOREIGN KEY (municipality_id) REFERENCES municipalities(municipality_id);
 
 -- ---------------------------------------------------------------------------
--- 6. Notifications no longer target a Business audience. A role-broadcast
---    notification (role_target set) is also scoped to one Municipality, so
---    an Admin's announcement never leaks into another Municipality's feed —
---    a direct notification (user_id set instead) doesn't need this, since
---    it already targets one specific account.
+-- 7. Notifications no longer target a Business audience either. A
+--    role-broadcast notification (role_target set) is also scoped to one
+--    Municipality, so an Admin's announcement never leaks into another
+--    Municipality's feed — a direct notification (user_id set instead)
+--    doesn't need this, since it already targets one specific account.
 -- ---------------------------------------------------------------------------
 ALTER TABLE notifications
   MODIFY COLUMN role_target ENUM('Citizen','Officer','Admin','All') NULL,
   ADD COLUMN municipality_id INT NULL AFTER role_target,
   ADD CONSTRAINT fk_notifications_municipality
     FOREIGN KEY (municipality_id) REFERENCES municipalities(municipality_id);
-
--- ---------------------------------------------------------------------------
--- 7. Drop the Business role and everything that only served it. Order
---    matters: child tables (foreign keys) before their parents.
--- ---------------------------------------------------------------------------
-DROP TABLE IF EXISTS order_items;
-DROP TABLE IF EXISTS orders;
-DROP TABLE IF EXISTS cart_items;
-DROP TABLE IF EXISTS cart;
-DROP TABLE IF EXISTS products;
-DROP TABLE IF EXISTS categories;
-DROP TABLE IF EXISTS businesses;
 
 -- ---------------------------------------------------------------------------
 -- 8. The old global "municipality_name/address/contact_*" settings are
