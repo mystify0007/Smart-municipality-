@@ -223,6 +223,13 @@ async function updateComplaintStatus(req, res) {
 
     res.json({ success: true, message: "Complaint updated" });
   } catch (err) {
+    if (err.code === "ER_BAD_FIELD_ERROR") {
+      console.error("Update complaint error — missing column (run migration_add_officer_response.sql):", err);
+      return res.status(500).json({
+        success: false,
+        error: "Server is missing the officer_response column. Ask the Admin to run migration_add_officer_response.sql.",
+      });
+    }
     console.error("Update complaint error:", err);
     res.status(500).json({ success: false, error: "Failed to update complaint" });
   }
