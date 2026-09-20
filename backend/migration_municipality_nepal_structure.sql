@@ -76,8 +76,15 @@ CREATE TABLE IF NOT EXISTS municipalities (
 -- ---------------------------------------------------------------------------
 -- 3. Drop the Business role and everything that only served it — BEFORE any
 --    ENUM narrowing below, so nothing is left referencing a 'Business' row.
---    Order matters: child tables (foreign keys) before their parents.
+--    Foreign-key checks are disabled for this block rather than relying on a
+--    specific drop order: everything that could reference any of these
+--    tables is itself one of these tables (or gets cleaned up in step 3b
+--    below), so there is nothing left dangling once checks are re-enabled —
+--    and this avoids failing on a foreign key from a table this migration's
+--    author doesn't know an installation added independently.
 -- ---------------------------------------------------------------------------
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS reviews;
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS cart_items;
@@ -85,6 +92,7 @@ DROP TABLE IF EXISTS cart;
 DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS businesses;
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- ---------------------------------------------------------------------------
 -- 3b. Any Business account may, under the old rules, have personally filed a
