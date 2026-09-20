@@ -1,10 +1,15 @@
-import PreferenceToggles from "../../components/PreferenceToggles";
+import PreferenceToggles from "../components/PreferenceToggles";
 
-// Officer and the three Admin scopes each have their own dedicated login
-// page/route now (see OfficerLogin.jsx, MunicipalityAdminLogin.jsx,
-// ProvinceAdminLogin.jsx, StateAdminLogin.jsx) instead of one shared form —
-// this page is just the entry point that routes a visitor to the right one.
+// The single front door for the whole platform — Citizen sits alongside
+// Officer and the three Admin scopes as an equal choice here, rather than
+// being the default destination of a generic "Login" button with everyone
+// else hidden behind a secondary link on that page.
 const PORTALS = [
+  {
+    label: "Citizen",
+    href: "/login",
+    description: "Apply for certificates, pay taxes, file complaints, and track your requests.",
+  },
   {
     label: "Officer",
     href: "/officer/login",
@@ -27,7 +32,7 @@ const PORTALS = [
   },
 ];
 
-export default function StaffLogin() {
+export default function PortalChooser() {
   return (
     <div className="min-h-screen portal-photo-bg flex flex-col items-center justify-center px-4 py-12 relative">
       <PreferenceToggles className="absolute top-4 right-4" />
@@ -39,7 +44,7 @@ export default function StaffLogin() {
           </svg>
         </div>
         <h1 className="text-2xl font-semibold text-slate-100">Smart Municipality Portal</h1>
-        <p className="text-xs tracking-widest text-amber-500 mt-1 uppercase">Staff Secure Access</p>
+        <p className="text-xs tracking-widest text-amber-500 mt-1 uppercase">Choose Your Portal</p>
       </div>
 
       <div className="w-full max-w-sm bg-[#101a30] border border-slate-700 rounded-xl p-8">
@@ -56,12 +61,6 @@ export default function StaffLogin() {
               <p className="text-xs text-slate-500 mt-0.5">{p.description}</p>
             </a>
           ))}
-        </div>
-
-        <div className="mt-6 text-center">
-          <a href="/login" className="text-sm text-slate-500 hover:underline">
-            ← Citizen Login
-          </a>
         </div>
       </div>
 

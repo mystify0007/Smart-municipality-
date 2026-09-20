@@ -105,9 +105,12 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             <PreferenceToggles />
 
-            {/* Login Button */}
+            {/* Login Button — goes to the portal chooser, not straight to
+                the Citizen form, so every portal (Citizen included) is an
+                equal first choice rather than Citizen being the default
+                with Officer/Admin hidden behind a secondary link. */}
             <Link
-              to="/login"
+              to="/portals"
               className="bg-portal-primary hover:bg-portal-primary-hover text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
             >
               Login

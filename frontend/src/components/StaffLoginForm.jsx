@@ -103,8 +103,8 @@ export default function StaffLoginForm({
             </p>
           )}
           <p>
-            <a href="/staff/login" className="text-sm text-slate-500 hover:underline">
-              ← Choose a different staff portal
+            <a href="/portals" className="text-sm text-slate-500 hover:underline">
+              ← Choose a different portal
             </a>
           </p>
           <p>

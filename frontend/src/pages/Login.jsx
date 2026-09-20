@@ -101,8 +101,8 @@ export default function Login() {
         </div>
 
         <div className="mt-3 text-center">
-          <a href="/staff/login" className="text-xs text-portal-muted hover:underline">
-            Officer / Admin? Use Staff Login →
+          <a href="/portals" className="text-xs text-portal-muted hover:underline">
+            Not a Citizen? Choose your portal →
           </a>
         </div>
       </div>
