@@ -169,16 +169,6 @@ export default function CitizenManagement() {
               ))}
             </ul>
 
-            <p className="text-sm font-medium text-portal-text mb-2">Orders ({selected.orders.length})</p>
-            <ul className="space-y-1 text-sm">
-              {selected.orders.length === 0 ? (
-                <li className="text-portal-muted">None</li>
-              ) : selected.orders.map((o) => (
-                <li key={o.order_id} className="text-portal-muted">
-                  Order #{o.order_id} — Rs. {o.total_amount} — <span className="text-portal-text">{o.order_status}</span>
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
       )}

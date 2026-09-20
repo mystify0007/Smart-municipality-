@@ -3,9 +3,8 @@ const router = express.Router();
 
 const {
   getAdminStats,
-  createNotice, updateNotice, deleteNotice,
+  getMyMunicipalityNotices, createNotice, updateNotice, deleteNotice,
   getCitizens, getCitizenDetail,
-  getBusinesses, getBusinessDetail, updateBusinessStatus,
   updateUserStatus,
   getAdminProfile, updateAdminProfile,
 } = require("../controllers/adminController");
@@ -21,13 +20,12 @@ const {
   getSettings, updateSettings,
 } = require("../controllers/settingsController");
 
+const { getMyMunicipality, updateMyMunicipality } = require("../controllers/locationController");
+
 const { adminListApplications, assignApplication } = require("../controllers/certificateController");
 const {
   adminListComplaints, assignComplaint, escalateComplaint, closeComplaint,
 } = require("../controllers/complaintController");
-const {
-  adminListProducts, removeProduct, restoreProduct, adminListOrders,
-} = require("../controllers/marketplaceAdminController");
 const { getSystemReports } = require("../controllers/reportsController");
 
 const { verifyToken, requireRole } = require("../middleware/authMiddleware");
@@ -51,13 +49,13 @@ router.patch("/officers/:id/activate", verifyToken, requireRole("Admin"), activa
 router.get("/citizens", verifyToken, requireRole("Admin"), getCitizens);
 router.get("/citizens/:id", verifyToken, requireRole("Admin"), getCitizenDetail);
 
-// Business management
-router.get("/businesses", verifyToken, requireRole("Admin"), getBusinesses);
-router.get("/businesses/:id", verifyToken, requireRole("Admin"), getBusinessDetail);
-router.patch("/businesses/:id", verifyToken, requireRole("Admin"), updateBusinessStatus);
-
-// Generic account activate/deactivate (citizens and businesses)
+// Generic account activate/deactivate
 router.patch("/users/:id/status", verifyToken, requireRole("Admin"), updateUserStatus);
+
+// The Admin's own Municipality — Province name+id, District, Local Body, and
+// editable contact details
+router.get("/municipality", verifyToken, requireRole("Admin"), getMyMunicipality);
+router.patch("/municipality", verifyToken, requireRole("Admin"), updateMyMunicipality);
 
 // Municipal services
 router.get("/services", verifyToken, requireRole("Admin"), listServices);
@@ -85,13 +83,9 @@ router.patch("/complaints/:id/assign", verifyToken, requireRole("Admin"), assign
 router.patch("/complaints/:id/escalate", verifyToken, requireRole("Admin"), escalateComplaint);
 router.patch("/complaints/:id/close", verifyToken, requireRole("Admin"), closeComplaint);
 
-// Marketplace oversight
-router.get("/marketplace/products", verifyToken, requireRole("Admin"), adminListProducts);
-router.patch("/marketplace/products/:id/remove", verifyToken, requireRole("Admin"), removeProduct);
-router.patch("/marketplace/products/:id/restore", verifyToken, requireRole("Admin"), restoreProduct);
-router.get("/marketplace/orders", verifyToken, requireRole("Admin"), adminListOrders);
-
-// Announcements (GET is public — see routes/noticeRoutes.js)
+// Announcements — GET here is the Admin's own Municipality's notices
+// (the public, unauthenticated equivalent lives in routes/noticeRoutes.js)
+router.get("/notices", verifyToken, requireRole("Admin"), getMyMunicipalityNotices);
 router.post("/notices", verifyToken, requireRole("Admin"), createNotice);
 router.patch("/notices/:id", verifyToken, requireRole("Admin"), updateNotice);
 router.delete("/notices/:id", verifyToken, requireRole("Admin"), deleteNotice);

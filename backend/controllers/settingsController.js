@@ -1,13 +1,22 @@
 // controllers/settingsController.js
-// departments: department_id, name, description, created_at
+// departments: department_id, name, municipality_id, description, created_at
 // system_settings: setting_key (PK), setting_value, updated_at
 const { pool } = require("../config/db");
 
-// GET /api/departments — public (feeds the department dropdown on both the
-// Officer registration form and the Admin's service-assignment forms)
+// GET /api/departments?municipality_id= — public (feeds the department
+// dropdown on the Officer registration form, before login) — or, when
+// called by a logged-in Admin (GET /api/admin/departments), scoped to their
+// own Municipality automatically instead.
 async function listDepartments(req, res) {
   try {
-    const [rows] = await pool.query("SELECT * FROM departments ORDER BY name ASC");
+    const municipalityId = req.user ? req.user.municipality_id : req.query.municipality_id;
+    if (!municipalityId) {
+      return res.status(400).json({ success: false, error: "municipality_id is required" });
+    }
+    const [rows] = await pool.query(
+      "SELECT * FROM departments WHERE municipality_id = ? ORDER BY name ASC",
+      [municipalityId]
+    );
     res.json({ success: true, departments: rows });
   } catch (err) {
     console.error("List departments error:", err);
@@ -24,8 +33,8 @@ async function createDepartment(req, res) {
     }
 
     const [result] = await pool.query(
-      "INSERT INTO departments (name, description) VALUES (?, ?)",
-      [name, description || null]
+      "INSERT INTO departments (name, municipality_id, description) VALUES (?, ?, ?)",
+      [name, req.user.municipality_id, description || null]
     );
     res.status(201).json({ success: true, department_id: result.insertId });
   } catch (err) {
@@ -43,7 +52,10 @@ async function updateDepartment(req, res) {
     const { id } = req.params;
     const { name, description } = req.body;
 
-    const [existing] = await pool.query("SELECT * FROM departments WHERE department_id = ?", [id]);
+    const [existing] = await pool.query(
+      "SELECT * FROM departments WHERE department_id = ? AND municipality_id = ?",
+      [id, req.user.municipality_id]
+    );
     if (existing.length === 0) {
       return res.status(404).json({ success: false, error: "Department not found" });
     }
@@ -67,7 +79,10 @@ async function updateDepartment(req, res) {
 async function deleteDepartment(req, res) {
   try {
     const { id } = req.params;
-    const [result] = await pool.query("DELETE FROM departments WHERE department_id = ?", [id]);
+    const [result] = await pool.query(
+      "DELETE FROM departments WHERE department_id = ? AND municipality_id = ?",
+      [id, req.user.municipality_id]
+    );
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, error: "Department not found" });
     }

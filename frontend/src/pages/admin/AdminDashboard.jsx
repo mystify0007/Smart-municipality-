@@ -5,13 +5,10 @@ import { useLanguage } from "../../context/LanguageContext";
 
 const CARD_DEFS = [
   { key: "total_citizens", label: "Total Citizens" },
-  { key: "total_businesses", label: "Total Businesses" },
   { key: "total_officers", label: "Total Officers" },
   { key: "pending_officer_verifications", label: "Pending Officer Verifications", accent: "text-portal-accent" },
   { key: "pending_applications", label: "Pending Applications", accent: "text-portal-accent" },
   { key: "pending_complaints", label: "Pending Complaints", accent: "text-portal-accent" },
-  { key: "total_orders", label: "Total Orders" },
-  { key: "pending_businesses", label: "Pending Business Approvals", accent: "text-portal-accent" },
 ];
 
 export default function AdminDashboard() {

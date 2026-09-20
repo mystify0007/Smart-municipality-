@@ -52,11 +52,6 @@ export default function AdminReports() {
             rows={report.citizenStats}
           />
           <Table
-            title="Businesses by Status"
-            columns={[{ key: "status", label: "Status" }, { key: "count", label: "Count" }]}
-            rows={report.businessStats}
-          />
-          <Table
             title="Officers by Verification Status"
             columns={[{ key: "officer_status", label: "Status" }, { key: "count", label: "Count" }]}
             rows={report.officerStats}
@@ -74,15 +69,6 @@ export default function AdminReports() {
               { key: "count", label: "Count" },
             ]}
             rows={report.applicationStats}
-          />
-          <Table
-            title="Orders by Status"
-            columns={[
-              { key: "order_status", label: "Status" },
-              { key: "count", label: "Count" },
-              { key: "total", label: "Total (Rs.)" },
-            ]}
-            rows={report.orderStats}
           />
           <Table
             title="Payments / Transactions"

@@ -18,10 +18,6 @@ import TaxPayment from "./pages/citizen/TaxPayment";
 import EsewaTaxPayment from "./pages/citizen/EsewaTaxPayment";
 import Complaints from "./pages/citizen/Complaints";
 
-import BusinessDashboard from "./pages/business/BusinessDashboard";
-import MyProducts from "./pages/business/MyProducts";
-import BusinessOrders from "./pages/business/BusinessOrders";
-
 import OfficerDashboard from "./pages/officer/OfficerDashboard";
 import OfficerApplications from "./pages/officer/OfficerApplications";
 import OfficerComplaints from "./pages/officer/OfficerComplaints";
@@ -31,20 +27,13 @@ import OfficerProfile from "./pages/officer/OfficerProfile";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import OfficerVerification from "./pages/admin/OfficerVerification";
 import CitizenManagement from "./pages/admin/CitizenManagement";
-import ApproveBusinesses from "./pages/admin/ApproveBusinesses";
 import MunicipalServices from "./pages/admin/MunicipalServices";
 import ApplicationManagement from "./pages/admin/ApplicationManagement";
 import ComplaintManagement from "./pages/admin/ComplaintManagement";
-import MarketplaceManagement from "./pages/admin/MarketplaceManagement";
 import AdminNotices from "./pages/admin/AdminNotices";
 import AdminReports from "./pages/admin/AdminReports";
 import SystemSettings from "./pages/admin/SystemSettings";
 import AdminProfile from "./pages/admin/AdminProfile";
-
-import Marketplace from "./pages/marketplace/Marketplace";
-import Cart from "./pages/marketplace/Cart";
-import MyOrders from "./pages/citizen/MyOrders";
-import EsewaPayment from "./pages/payment/EsewaPayment";
 
 export default function App() {
   return (
@@ -80,17 +69,6 @@ export default function App() {
             <ProtectedRoute allowedRoles={["Citizen"]}><Complaints /></ProtectedRoute>
           } />
 
-          {/* Business */}
-          <Route path="/business/dashboard" element={
-            <ProtectedRoute allowedRoles={["Business"]}><BusinessDashboard /></ProtectedRoute>
-          } />
-          <Route path="/business/products" element={
-            <ProtectedRoute allowedRoles={["Business"]}><MyProducts /></ProtectedRoute>
-          } />
-          <Route path="/business/orders" element={
-            <ProtectedRoute allowedRoles={["Business"]}><BusinessOrders /></ProtectedRoute>
-          } />
-
           {/* Officer */}
           <Route path="/officer/dashboard" element={
             <ProtectedRoute allowedRoles={["Officer"]}><OfficerDashboard /></ProtectedRoute>
@@ -118,9 +96,6 @@ export default function App() {
           <Route path="/admin/citizens" element={
             <ProtectedRoute allowedRoles={["Admin"]}><CitizenManagement /></ProtectedRoute>
           } />
-          <Route path="/admin/businesses" element={
-            <ProtectedRoute allowedRoles={["Admin"]}><ApproveBusinesses /></ProtectedRoute>
-          } />
           <Route path="/admin/services" element={
             <ProtectedRoute allowedRoles={["Admin"]}><MunicipalServices /></ProtectedRoute>
           } />
@@ -129,9 +104,6 @@ export default function App() {
           } />
           <Route path="/admin/complaints" element={
             <ProtectedRoute allowedRoles={["Admin"]}><ComplaintManagement /></ProtectedRoute>
-          } />
-          <Route path="/admin/marketplace" element={
-            <ProtectedRoute allowedRoles={["Admin"]}><MarketplaceManagement /></ProtectedRoute>
           } />
           <Route path="/admin/notices" element={
             <ProtectedRoute allowedRoles={["Admin"]}><AdminNotices /></ProtectedRoute>
@@ -144,20 +116,6 @@ export default function App() {
           } />
           <Route path="/admin/profile" element={
             <ProtectedRoute allowedRoles={["Admin"]}><AdminProfile /></ProtectedRoute>
-          } />
-
-          {/* Marketplace — Business can browse but not buy; cart/checkout is Citizen-only */}
-          <Route path="/marketplace" element={
-            <ProtectedRoute allowedRoles={["Citizen", "Business"]}><Marketplace /></ProtectedRoute>
-          } />
-          <Route path="/cart" element={
-            <ProtectedRoute allowedRoles={["Citizen"]}><Cart /></ProtectedRoute>
-          } />
-          <Route path="/orders/mine" element={
-            <ProtectedRoute allowedRoles={["Citizen"]}><MyOrders /></ProtectedRoute>
-          } />
-          <Route path="/payment/esewa/:orderId" element={
-            <ProtectedRoute allowedRoles={["Citizen"]}><EsewaPayment /></ProtectedRoute>
           } />
 
           <Route path="*" element={<Navigate to="/login" replace />} />

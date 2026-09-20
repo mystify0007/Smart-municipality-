@@ -103,6 +103,7 @@ export default function OfficerVerification() {
                 <th className="pb-2 font-normal">Department</th>
                 <th className="pb-2 font-normal">Designation</th>
                 <th className="pb-2 font-normal">Status</th>
+                <th className="pb-2 font-normal">Workload</th>
                 <th className="pb-2 font-normal">Actions</th>
               </tr>
             </thead>
@@ -119,6 +120,11 @@ export default function OfficerVerification() {
                     <span className={`px-2.5 py-1 rounded-full text-xs ${STATUS_STYLES[o.officer_status] || ""}`}>
                       {o.officer_status}
                     </span>
+                  </td>
+                  <td className="py-3 text-portal-muted">
+                    {o.officer_status === "Approved"
+                      ? (o.active_workload === 0 ? "Free" : `Busy (${o.active_workload})`)
+                      : "—"}
                   </td>
                   <td className="py-3 space-x-2">
                     {o.officer_status === "Pending" && (

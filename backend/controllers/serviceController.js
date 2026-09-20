@@ -1,9 +1,10 @@
 // controllers/serviceController.js
-// municipal_services: service_id, name, description, required_documents,
-//                      fee, department_id, assigned_officer_id, is_active, created_at
+// municipal_services: service_id, name, municipality_id, description,
+//                      required_documents, fee, department_id,
+//                      assigned_officer_id, is_active, created_at
 const { pool } = require("../config/db");
 
-// GET /api/admin/services
+// GET /api/admin/services — scoped to the Admin's own Municipality
 async function listServices(req, res) {
   try {
     const [rows] = await pool.query(`
@@ -11,8 +12,9 @@ async function listServices(req, res) {
       FROM municipal_services s
       LEFT JOIN departments d ON s.department_id = d.department_id
       LEFT JOIN users u ON s.assigned_officer_id = u.user_id
+      WHERE s.municipality_id = ?
       ORDER BY s.created_at DESC
-    `);
+    `, [req.user.municipality_id]);
     res.json({ success: true, services: rows });
   } catch (err) {
     console.error("List services error:", err);
@@ -30,9 +32,9 @@ async function createService(req, res) {
     }
 
     const [result] = await pool.query(
-      `INSERT INTO municipal_services (name, description, required_documents, fee, department_id, assigned_officer_id, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, 1)`,
-      [name, description || null, required_documents || null, fee || 0, department_id || null, assigned_officer_id || null]
+      `INSERT INTO municipal_services (name, municipality_id, description, required_documents, fee, department_id, assigned_officer_id, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+      [name, req.user.municipality_id, description || null, required_documents || null, fee || 0, department_id || null, assigned_officer_id || null]
     );
 
     res.status(201).json({ success: true, service_id: result.insertId });
@@ -48,7 +50,10 @@ async function updateService(req, res) {
     const { id } = req.params;
     const { name, description, required_documents, fee, department_id, assigned_officer_id, is_active } = req.body;
 
-    const [existing] = await pool.query("SELECT * FROM municipal_services WHERE service_id = ?", [id]);
+    const [existing] = await pool.query(
+      "SELECT * FROM municipal_services WHERE service_id = ? AND municipality_id = ?",
+      [id, req.user.municipality_id]
+    );
     if (existing.length === 0) {
       return res.status(404).json({ success: false, error: "Service not found" });
     }
@@ -82,7 +87,10 @@ async function updateService(req, res) {
 async function deleteService(req, res) {
   try {
     const { id } = req.params;
-    const [result] = await pool.query("DELETE FROM municipal_services WHERE service_id = ?", [id]);
+    const [result] = await pool.query(
+      "DELETE FROM municipal_services WHERE service_id = ? AND municipality_id = ?",
+      [id, req.user.municipality_id]
+    );
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, error: "Service not found" });
     }

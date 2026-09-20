@@ -21,7 +21,7 @@ export function AuthProvider({ children }) {
   // Same mechanism as login() above, just hitting the staff-only endpoint.
   // Deliberately reuses the exact same React state update path (setUser)
   // rather than a raw page reload, so the app picks up the new session
-  // the same reliable way the citizen/business login already does.
+  // the same reliable way the citizen login already does.
   async function staffLogin(email, password) {
     const res = await api.post("/auth/staff/login", { email, password });
     const { token, user } = res.data;

@@ -6,9 +6,10 @@ import { useLanguage } from "../../context/LanguageContext";
 export default function SystemSettings() {
   const { t } = useLanguage();
   const [settings, setSettings] = useState({
-    municipality_name: "", municipality_address: "", contact_email: "", contact_phone: "",
     notify_email_enabled: "true", notify_sms_enabled: "false",
   });
+  const [municipality, setMunicipality] = useState(null);
+  const [municipalityForm, setMunicipalityForm] = useState({ office_address: "", contact_email: "", contact_phone: "" });
   const [departments, setDepartments] = useState([]);
   const [deptForm, setDeptForm] = useState({ name: "", description: "" });
   const [editingDeptId, setEditingDeptId] = useState(null);
@@ -18,12 +19,19 @@ export default function SystemSettings() {
   async function loadAll() {
     setLoading(true);
     try {
-      const [settingsRes, deptRes] = await Promise.all([
+      const [settingsRes, deptRes, municipalityRes] = await Promise.all([
         api.get("/admin/settings"),
         api.get("/admin/departments"),
+        api.get("/admin/municipality"),
       ]);
       setSettings((s) => ({ ...s, ...settingsRes.data.settings }));
       setDepartments(deptRes.data.departments);
+      setMunicipality(municipalityRes.data.municipality);
+      setMunicipalityForm({
+        office_address: municipalityRes.data.municipality.office_address || "",
+        contact_email: municipalityRes.data.municipality.contact_email || "",
+        contact_phone: municipalityRes.data.municipality.contact_phone || "",
+      });
     } finally {
       setLoading(false);
     }
@@ -41,6 +49,21 @@ export default function SystemSettings() {
     try {
       await api.patch("/admin/settings", settings);
       setMessage({ type: "success", text: "Settings saved." });
+    } catch (err) {
+      setMessage({ type: "error", text: err.response?.data?.error || "Save failed" });
+    }
+  }
+
+  function updateMunicipalityField(key, value) {
+    setMunicipalityForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function handleSaveMunicipality(e) {
+    e.preventDefault();
+    setMessage(null);
+    try {
+      await api.patch("/admin/municipality", municipalityForm);
+      setMessage({ type: "success", text: "Municipality details saved." });
     } catch (err) {
       setMessage({ type: "error", text: err.response?.data?.error || "Save failed" });
     }
@@ -105,21 +128,34 @@ export default function SystemSettings() {
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-6 mb-6">
         <div className="bg-portal-panel border border-portal-panel-border rounded-xl p-6">
           <h3 className="font-medium text-portal-text mb-4">Municipality Information</h3>
-          <form onSubmit={handleSaveSettings} className="space-y-4">
-            <div>
-              <label className="block text-sm text-portal-muted mb-1.5">Municipality Name</label>
-              <input
-                value={settings.municipality_name} onChange={(e) => updateSetting("municipality_name", e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
-              />
+          {municipality && (
+            <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+              <div>
+                <p className="text-xs text-portal-muted uppercase tracking-wide">Local Body</p>
+                <p className="text-portal-text">{municipality.local_body_name} ({municipality.type_name})</p>
+              </div>
+              <div>
+                <p className="text-xs text-portal-muted uppercase tracking-wide">Local Body ID</p>
+                <p className="text-portal-text">{municipality.local_body_id}</p>
+              </div>
+              <div>
+                <p className="text-xs text-portal-muted uppercase tracking-wide">District</p>
+                <p className="text-portal-text">{municipality.district_name}</p>
+              </div>
+              <div>
+                <p className="text-xs text-portal-muted uppercase tracking-wide">Province</p>
+                <p className="text-portal-text">{municipality.province_name} (ID: {municipality.province_id})</p>
+              </div>
             </div>
+          )}
+          <form onSubmit={handleSaveMunicipality} className="space-y-4">
             <div>
-              <label className="block text-sm text-portal-muted mb-1.5">Address</label>
+              <label className="block text-sm text-portal-muted mb-1.5">Office Address</label>
               <input
-                value={settings.municipality_address} onChange={(e) => updateSetting("municipality_address", e.target.value)}
+                value={municipalityForm.office_address} onChange={(e) => updateMunicipalityField("office_address", e.target.value)}
                 className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
               />
             </div>
@@ -127,20 +163,27 @@ export default function SystemSettings() {
               <div>
                 <label className="block text-sm text-portal-muted mb-1.5">Contact Email</label>
                 <input
-                  type="email" value={settings.contact_email} onChange={(e) => updateSetting("contact_email", e.target.value)}
+                  type="email" value={municipalityForm.contact_email} onChange={(e) => updateMunicipalityField("contact_email", e.target.value)}
                   className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 />
               </div>
               <div>
                 <label className="block text-sm text-portal-muted mb-1.5">Contact Phone</label>
                 <input
-                  value={settings.contact_phone} onChange={(e) => updateSetting("contact_phone", e.target.value)}
+                  value={municipalityForm.contact_phone} onChange={(e) => updateMunicipalityField("contact_phone", e.target.value)}
                   className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                 />
               </div>
             </div>
+            <button className="w-full bg-portal-primary hover:bg-portal-primary-hover text-white font-medium rounded-lg py-2.5">
+              Save Municipality Details
+            </button>
+          </form>
+        </div>
 
-            <p className="text-sm text-portal-muted pt-2">Notification Settings</p>
+        <div className="bg-portal-panel border border-portal-panel-border rounded-xl p-6">
+          <h3 className="font-medium text-portal-text mb-4">Notification Settings</h3>
+          <form onSubmit={handleSaveSettings} className="space-y-3">
             <label className="flex items-center gap-2 text-sm text-portal-text">
               <input
                 type="checkbox" checked={settings.notify_email_enabled === "true"}
@@ -155,14 +198,14 @@ export default function SystemSettings() {
               />
               SMS notifications enabled
             </label>
-
             <button className="w-full bg-portal-primary hover:bg-portal-primary-hover text-white font-medium rounded-lg py-2.5">
               Save Settings
             </button>
           </form>
         </div>
+      </div>
 
-        <div className="bg-portal-panel border border-portal-panel-border rounded-xl p-6">
+      <div className="bg-portal-panel border border-portal-panel-border rounded-xl p-6">
           <h3 className="font-medium text-portal-text mb-4">Departments</h3>
           <form onSubmit={handleSaveDept} className="space-y-3 mb-5">
             <div className="grid grid-cols-2 gap-2">
@@ -207,7 +250,6 @@ export default function SystemSettings() {
               ))}
             </ul>
           )}
-        </div>
       </div>
     </DashboardLayout>
   );
