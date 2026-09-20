@@ -8,7 +8,7 @@ const { uploadCertificateDoc } = require("../middleware/uploadMiddleware");
 router.post(
   "/apply",
   verifyToken,
-  requireRole("Citizen", "Business"),
+  requireRole("Citizen"),
   uploadCertificateDoc.single("document"),
   applyForCertificate
 );

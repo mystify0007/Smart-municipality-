@@ -1,42 +1,45 @@
-// controllers/reportsController.js — Admin-only, system-wide analytics.
-// This is deliberately never reused by the Officer role (see
-// officerController.getReports, which is scoped to assigned work only).
+// controllers/reportsController.js — Admin-only analytics, scoped to the
+// Admin's own Municipality. This is deliberately never reused by the
+// Officer role (see officerController.getReports, which is scoped to
+// assigned work only).
 const { pool } = require("../config/db");
 
 // GET /api/admin/reports
 async function getSystemReports(req, res) {
   try {
+    const municipalityId = req.user.municipality_id;
+
     const [citizenStats] = await pool.query(
-      "SELECT status, COUNT(*) AS count FROM users WHERE role = 'Citizen' GROUP BY status"
-    );
-    const [businessStats] = await pool.query(
-      "SELECT status, COUNT(*) AS count FROM businesses GROUP BY status"
+      "SELECT status, COUNT(*) AS count FROM users WHERE role = 'Citizen' AND municipality_id = ? GROUP BY status",
+      [municipalityId]
     );
     const [officerStats] = await pool.query(
-      "SELECT officer_status, COUNT(*) AS count FROM users WHERE role = 'Officer' GROUP BY officer_status"
+      "SELECT officer_status, COUNT(*) AS count FROM users WHERE role = 'Officer' AND municipality_id = ? GROUP BY officer_status",
+      [municipalityId]
     );
     const [applicationStats] = await pool.query(
       `SELECT certificate_type, status, COUNT(*) AS count
-       FROM certificates GROUP BY certificate_type, status
-       ORDER BY certificate_type, status`
+       FROM certificates WHERE municipality_id = ? GROUP BY certificate_type, status
+       ORDER BY certificate_type, status`,
+      [municipalityId]
     );
     const [complaintStats] = await pool.query(
-      "SELECT status, COUNT(*) AS count FROM complaints GROUP BY status"
-    );
-    const [orderStats] = await pool.query(
-      `SELECT order_status, COUNT(*) AS count, COALESCE(SUM(total_amount), 0) AS total
-       FROM orders GROUP BY order_status`
+      "SELECT status, COUNT(*) AS count FROM complaints WHERE municipality_id = ? GROUP BY status",
+      [municipalityId]
     );
     const [paymentStats] = await pool.query(
-      `SELECT payment_method, payment_status, COUNT(*) AS count, COALESCE(SUM(amount), 0) AS total
-       FROM tax_payments GROUP BY payment_method, payment_status`
+      `SELECT t.payment_method, t.payment_status, COUNT(*) AS count, COALESCE(SUM(t.amount), 0) AS total
+       FROM tax_payments t JOIN users u ON t.user_id = u.user_id
+       WHERE u.municipality_id = ?
+       GROUP BY t.payment_method, t.payment_status`,
+      [municipalityId]
     );
 
     res.json({
       success: true,
       report: {
-        citizenStats, businessStats, officerStats, applicationStats,
-        complaintStats, orderStats, paymentStats,
+        citizenStats, officerStats, applicationStats,
+        complaintStats, paymentStats,
       },
     });
   } catch (err) {

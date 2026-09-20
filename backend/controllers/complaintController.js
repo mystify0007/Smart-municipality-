@@ -20,9 +20,9 @@ async function submitComplaint(req, res) {
     const imagePath = req.file ? `/uploads/complaints/${req.file.filename}` : null;
 
     const [result] = await pool.query(
-      `INSERT INTO complaints (user_id, subject, description, location, status, created_at, image)
-       VALUES (?, ?, ?, ?, 'Pending', NOW(), ?)`,
-      [userId, subject, description, location || null, imagePath]
+      `INSERT INTO complaints (user_id, municipality_id, subject, description, location, status, created_at, image)
+       VALUES (?, ?, ?, ?, ?, 'Pending', NOW(), ?)`,
+      [userId, req.user.municipality_id, subject, description, location || null, imagePath]
     );
 
     res.status(201).json({ success: true, complaint_id: result.insertId });
@@ -66,7 +66,7 @@ async function getMyAssignedComplaints(req, res) {
 }
 
 // GET /api/admin/complaints?status=&officer_id=&escalated= — every complaint
-// system-wide, for Admin's Complaint Management screen.
+// in the Admin's own Municipality, for the Complaint Management screen.
 async function adminListComplaints(req, res) {
   try {
     const { status, officer_id, escalated } = req.query;
@@ -77,15 +77,14 @@ async function adminListComplaints(req, res) {
       FROM complaints c
       JOIN users u ON c.user_id = u.user_id
       LEFT JOIN users o ON c.assigned_officer_id = o.user_id
+      WHERE c.municipality_id = ?
     `;
-    const conditions = [];
-    const params = [];
+    const params = [req.user.municipality_id];
 
-    if (status) { conditions.push("c.status = ?"); params.push(status); }
-    if (officer_id) { conditions.push("c.assigned_officer_id = ?"); params.push(officer_id); }
-    if (escalated !== undefined) { conditions.push("c.escalated = ?"); params.push(escalated === "true" ? 1 : 0); }
+    if (status) { sql += " AND c.status = ?"; params.push(status); }
+    if (officer_id) { sql += " AND c.assigned_officer_id = ?"; params.push(officer_id); }
+    if (escalated !== undefined) { sql += " AND c.escalated = ?"; params.push(escalated === "true" ? 1 : 0); }
 
-    if (conditions.length > 0) sql += " WHERE " + conditions.join(" AND ");
     sql += " ORDER BY c.created_at DESC";
 
     const [rows] = await pool.query(sql, params);
@@ -101,20 +100,24 @@ async function assignComplaint(req, res) {
   try {
     const { id } = req.params;
     const { officer_id } = req.body;
+    const municipalityId = req.user.municipality_id;
 
     if (!officer_id) {
       return res.status(400).json({ success: false, error: "officer_id is required" });
     }
 
     const [officerRows] = await pool.query(
-      "SELECT user_id, full_name FROM users WHERE user_id = ? AND role = 'Officer' AND officer_status = 'Approved'",
-      [officer_id]
+      "SELECT user_id, full_name FROM users WHERE user_id = ? AND role = 'Officer' AND officer_status = 'Approved' AND municipality_id = ?",
+      [officer_id, municipalityId]
     );
     if (officerRows.length === 0) {
-      return res.status(400).json({ success: false, error: "officer_id must be an approved Officer" });
+      return res.status(400).json({ success: false, error: "officer_id must be an approved Officer in your municipality" });
     }
 
-    const [existing] = await pool.query("SELECT * FROM complaints WHERE complaint_id = ?", [id]);
+    const [existing] = await pool.query(
+      "SELECT * FROM complaints WHERE complaint_id = ? AND municipality_id = ?",
+      [id, municipalityId]
+    );
     if (existing.length === 0) {
       return res.status(404).json({ success: false, error: "Complaint not found" });
     }

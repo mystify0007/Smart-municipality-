@@ -5,17 +5,31 @@ import { useLanguage } from "../context/LanguageContext";
 import PreferenceToggles from "../components/PreferenceToggles";
 
 // Public page — no login required, matches GET /api/notices which is
-// intentionally unauthenticated on the backend.
+// intentionally unauthenticated on the backend. Since notices are now
+// per-Municipality, a visitor first picks which Municipality's board to view.
 export default function PublicNotices() {
   const { t } = useLanguage();
+  const [municipalities, setMunicipalities] = useState([]);
+  const [municipalityId, setMunicipalityId] = useState("");
   const [notices, setNotices] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    api.get("/notices")
+    api.get("/locations/municipalities")
+      .then((res) => setMunicipalities(res.data.municipalities))
+      .catch(() => setMunicipalities([]));
+  }, []);
+
+  useEffect(() => {
+    if (!municipalityId) {
+      setNotices([]);
+      return;
+    }
+    setLoading(true);
+    api.get(`/notices?municipality_id=${municipalityId}`)
       .then((res) => setNotices(res.data.notices))
       .finally(() => setLoading(false));
-  }, []);
+  }, [municipalityId]);
 
   return (
     <div className="min-h-screen bg-portal-bg text-portal-text">
@@ -36,7 +50,24 @@ export default function PublicNotices() {
       <main className="max-w-4xl mx-auto px-6 py-12">
         <h1 className="text-2xl font-semibold mb-6">Notices & Announcements</h1>
 
-        {loading ? (
+        <div className="mb-6">
+          <label className="block text-sm text-portal-muted mb-1.5">Select a municipality</label>
+          <select
+            value={municipalityId} onChange={(e) => setMunicipalityId(e.target.value)}
+            className="w-full max-w-md rounded-lg bg-portal-panel border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+          >
+            <option value="">Choose a municipality...</option>
+            {municipalities.map((m) => (
+              <option key={m.municipality_id} value={m.municipality_id}>
+                {m.local_body_name} ({m.type_name}) — {m.district_name}, {m.province_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {!municipalityId ? (
+          <p className="text-portal-muted text-sm">Select a municipality above to view its notices.</p>
+        ) : loading ? (
           <p className="text-portal-muted text-sm">Loading...</p>
         ) : notices.length === 0 ? (
           <p className="text-portal-muted text-sm">No notices published yet.</p>

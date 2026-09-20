@@ -11,8 +11,9 @@ import PreferenceToggles from "../../components/PreferenceToggles";
 export default function StaffRegister() {
   const [form, setForm] = useState({
     full_name: "", email: "", phone: "", password: "",
-    address: "", department: "", designation: "",
+    address: "", department: "", designation: "", municipality_id: "",
   });
+  const [municipalities, setMunicipalities] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [error, setError] = useState("");
@@ -21,10 +22,20 @@ export default function StaffRegister() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get("/departments")
+    api.get("/locations/municipalities")
+      .then((res) => setMunicipalities(res.data.municipalities))
+      .catch(() => setMunicipalities([]));
+  }, []);
+
+  useEffect(() => {
+    if (!form.municipality_id) {
+      setDepartments([]);
+      return;
+    }
+    api.get(`/departments?municipality_id=${form.municipality_id}`)
       .then((res) => setDepartments(res.data.departments))
       .catch(() => setDepartments([]));
-  }, []);
+  }, [form.municipality_id]);
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -62,6 +73,21 @@ export default function StaffRegister() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm text-slate-400 mb-1.5">Municipality</label>
+            <select
+              required value={form.municipality_id} onChange={(e) => update("municipality_id", e.target.value)}
+              className="w-full rounded-lg bg-[#0b1120] border border-slate-700 px-3 py-2.5 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select the municipality you work for</option>
+              {municipalities.map((m) => (
+                <option key={m.municipality_id} value={m.municipality_id}>
+                  {m.local_body_name} ({m.type_name}) — {m.district_name}, {m.province_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block text-sm text-slate-400 mb-1.5">Full Name</label>
             <input

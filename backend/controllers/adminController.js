@@ -1,72 +1,69 @@
 // controllers/adminController.js
-// notices: notice_id, title, description, target_role ('All'|'Citizen'|'Business'|'Officer'),
+// notices: notice_id, title, description, target_role ('All'|'Citizen'|'Officer'),
 //          publish_date (date, required), updated_at, created_by
-// businesses: business_id, user_id, business_name, owner_name, business_type,
-//             pan_number, address, status ('Pending'|'Approved'|'Rejected'|'Suspended'), created_at
+// Every query in this file is scoped to req.user.municipality_id — each
+// Municipality's Admin only ever sees their own Municipality's citizens,
+// officers, applications, and complaints.
 const { pool } = require("../config/db");
 const { createNotification } = require("./notificationController");
-
-const BUSINESS_STATUSES = ["Approved", "Rejected", "Pending", "Suspended"];
 
 // GET /api/admin/stats — the Admin Dashboard Overview
 async function getAdminStats(req, res) {
   try {
+    const municipalityId = req.user.municipality_id;
+
     const [[{ total_citizens }]] = await pool.query(
-      "SELECT COUNT(*) AS total_citizens FROM users WHERE role = 'Citizen'"
-    );
-    const [[{ total_businesses }]] = await pool.query(
-      "SELECT COUNT(*) AS total_businesses FROM users WHERE role = 'Business'"
+      "SELECT COUNT(*) AS total_citizens FROM users WHERE role = 'Citizen' AND municipality_id = ?",
+      [municipalityId]
     );
     const [[{ total_officers }]] = await pool.query(
-      "SELECT COUNT(*) AS total_officers FROM users WHERE role = 'Officer'"
+      "SELECT COUNT(*) AS total_officers FROM users WHERE role = 'Officer' AND municipality_id = ?",
+      [municipalityId]
     );
     const [[{ pending_officer_verifications }]] = await pool.query(
-      "SELECT COUNT(*) AS pending_officer_verifications FROM users WHERE role = 'Officer' AND officer_status = 'Pending'"
+      "SELECT COUNT(*) AS pending_officer_verifications FROM users WHERE role = 'Officer' AND officer_status = 'Pending' AND municipality_id = ?",
+      [municipalityId]
     );
     const [[{ pending_applications }]] = await pool.query(
-      "SELECT COUNT(*) AS pending_applications FROM certificates WHERE status = 'Pending'"
+      "SELECT COUNT(*) AS pending_applications FROM certificates WHERE status = 'Pending' AND municipality_id = ?",
+      [municipalityId]
     );
     const [[{ pending_complaints }]] = await pool.query(
-      "SELECT COUNT(*) AS pending_complaints FROM complaints WHERE status = 'Pending'"
+      "SELECT COUNT(*) AS pending_complaints FROM complaints WHERE status = 'Pending' AND municipality_id = ?",
+      [municipalityId]
     );
-    const [[{ total_orders }]] = await pool.query("SELECT COUNT(*) AS total_orders FROM orders");
     const [[{ total_revenue }]] = await pool.query(
-      "SELECT COALESCE(SUM(amount), 0) AS total_revenue FROM tax_payments WHERE payment_status = 'Paid'"
-    );
-    const [[{ pending_businesses }]] = await pool.query(
-      "SELECT COUNT(*) AS pending_businesses FROM businesses WHERE status = 'Pending'"
+      `SELECT COALESCE(SUM(t.amount), 0) AS total_revenue
+       FROM tax_payments t JOIN users u ON t.user_id = u.user_id
+       WHERE t.payment_status = 'Paid' AND u.municipality_id = ?`,
+      [municipalityId]
     );
 
     const [recent_activities] = await pool.query(`
-      (SELECT 'Application' AS type, certificate_id AS ref_id,
-              CONCAT(certificate_type, ' certificate application — ', status) AS description,
-              applied_date AS occurred_at
-       FROM certificates ORDER BY applied_date DESC LIMIT 5)
+      (SELECT 'Application' AS type, c.certificate_id AS ref_id,
+              CONCAT(c.certificate_type, ' certificate application — ', c.status) AS description,
+              c.applied_date AS occurred_at
+       FROM certificates c WHERE c.municipality_id = ? ORDER BY c.applied_date DESC LIMIT 5)
       UNION ALL
-      (SELECT 'Complaint' AS type, complaint_id AS ref_id,
-              CONCAT('Complaint "', subject, '" — ', status) AS description,
-              created_at AS occurred_at
-       FROM complaints ORDER BY created_at DESC LIMIT 5)
-      UNION ALL
-      (SELECT 'Business' AS type, business_id AS ref_id,
-              CONCAT('Business "', business_name, '" — ', status) AS description,
-              created_at AS occurred_at
-       FROM businesses ORDER BY created_at DESC LIMIT 5)
+      (SELECT 'Complaint' AS type, cp.complaint_id AS ref_id,
+              CONCAT('Complaint "', cp.subject, '" — ', cp.status) AS description,
+              cp.created_at AS occurred_at
+       FROM complaints cp WHERE cp.municipality_id = ? ORDER BY cp.created_at DESC LIMIT 5)
       UNION ALL
       (SELECT 'Officer' AS type, user_id AS ref_id,
               CONCAT('Officer ', full_name, ' — ', COALESCE(officer_status, 'n/a')) AS description,
               COALESCE(verified_at, created_at) AS occurred_at
-       FROM users WHERE role = 'Officer' ORDER BY COALESCE(verified_at, created_at) DESC LIMIT 5)
+       FROM users WHERE role = 'Officer' AND municipality_id = ? ORDER BY COALESCE(verified_at, created_at) DESC LIMIT 5)
       ORDER BY occurred_at DESC
       LIMIT 15
-    `);
+    `, [municipalityId, municipalityId, municipalityId]);
 
     res.json({
       success: true,
       stats: {
-        total_citizens, total_businesses, total_officers,
+        total_citizens, total_officers,
         pending_officer_verifications, pending_applications, pending_complaints,
-        total_orders, total_revenue, pending_businesses,
+        total_revenue,
         recent_activities,
       },
     });
@@ -77,16 +74,39 @@ async function getAdminStats(req, res) {
 }
 
 // ---------------------------------------------------------------------------
-// Announcements (notices)
+// Announcements (notices) — scoped to the Admin's own Municipality
 // ---------------------------------------------------------------------------
 
-// GET /api/notices — public notice board
+// GET /api/notices?municipality_id= — public notice board for one municipality
 async function getNotices(req, res) {
   try {
-    const [rows] = await pool.query("SELECT * FROM notices ORDER BY publish_date DESC");
+    const { municipality_id } = req.query;
+    if (!municipality_id) {
+      return res.status(400).json({ success: false, error: "municipality_id is required" });
+    }
+    const [rows] = await pool.query(
+      "SELECT * FROM notices WHERE municipality_id = ? ORDER BY publish_date DESC",
+      [municipality_id]
+    );
     res.json({ success: true, notices: rows });
   } catch (err) {
     console.error("Get notices error:", err);
+    res.status(500).json({ success: false, error: "Failed to fetch notices" });
+  }
+}
+
+// GET /api/admin/notices — the Admin's own Municipality's notices (Admin
+// Notices management screen; unlike getNotices above this needs no query
+// param, since the Municipality comes from the logged-in Admin's own token)
+async function getMyMunicipalityNotices(req, res) {
+  try {
+    const [rows] = await pool.query(
+      "SELECT * FROM notices WHERE municipality_id = ? ORDER BY publish_date DESC",
+      [req.user.municipality_id]
+    );
+    res.json({ success: true, notices: rows });
+  } catch (err) {
+    console.error("Get municipality notices error:", err);
     res.status(500).json({ success: false, error: "Failed to fetch notices" });
   }
 }
@@ -97,25 +117,27 @@ async function createNotice(req, res) {
   try {
     const { title, description, publish_date, target_role } = req.body;
     const createdBy = req.user.user_id;
+    const municipalityId = req.user.municipality_id;
 
     if (!title || !description) {
       return res.status(400).json({ success: false, error: "title and description are required" });
     }
 
     const role = target_role || "All";
-    if (!["All", "Citizen", "Business", "Officer"].includes(role)) {
-      return res.status(400).json({ success: false, error: "target_role must be All, Citizen, Business, or Officer" });
+    if (!["All", "Citizen", "Officer"].includes(role)) {
+      return res.status(400).json({ success: false, error: "target_role must be All, Citizen, or Officer" });
     }
 
     const date = publish_date || new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
     const [result] = await pool.query(
-      "INSERT INTO notices (title, description, target_role, publish_date, created_by) VALUES (?, ?, ?, ?, ?)",
-      [title, description, role, date, createdBy]
+      "INSERT INTO notices (title, description, target_role, publish_date, created_by, municipality_id) VALUES (?, ?, ?, ?, ?, ?)",
+      [title, description, role, date, createdBy, municipalityId]
     );
 
     await createNotification({
       role_target: role,
+      municipality_id: municipalityId,
       title: `Announcement: ${title}`,
       message: description,
       related_type: "notice",
@@ -135,13 +157,16 @@ async function updateNotice(req, res) {
     const { id } = req.params;
     const { title, description, target_role } = req.body;
 
-    const [existing] = await pool.query("SELECT * FROM notices WHERE notice_id = ?", [id]);
+    const [existing] = await pool.query(
+      "SELECT * FROM notices WHERE notice_id = ? AND municipality_id = ?",
+      [id, req.user.municipality_id]
+    );
     if (existing.length === 0) {
       return res.status(404).json({ success: false, error: "Notice not found" });
     }
 
-    if (target_role && !["All", "Citizen", "Business", "Officer"].includes(target_role)) {
-      return res.status(400).json({ success: false, error: "target_role must be All, Citizen, Business, or Officer" });
+    if (target_role && !["All", "Citizen", "Officer"].includes(target_role)) {
+      return res.status(400).json({ success: false, error: "target_role must be All, Citizen, or Officer" });
     }
 
     await pool.query(
@@ -165,7 +190,10 @@ async function updateNotice(req, res) {
 async function deleteNotice(req, res) {
   try {
     const { id } = req.params;
-    const [result] = await pool.query("DELETE FROM notices WHERE notice_id = ?", [id]);
+    const [result] = await pool.query(
+      "DELETE FROM notices WHERE notice_id = ? AND municipality_id = ?",
+      [id, req.user.municipality_id]
+    );
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, error: "Notice not found" });
     }
@@ -177,7 +205,7 @@ async function deleteNotice(req, res) {
 }
 
 // ---------------------------------------------------------------------------
-// Citizen management
+// Citizen management — scoped to the Admin's own Municipality
 // ---------------------------------------------------------------------------
 
 // GET /api/admin/citizens?search=&status=
@@ -187,9 +215,9 @@ async function getCitizens(req, res) {
 
     let sql = `
       SELECT user_id, full_name, email, phone, address, citizenship_no, status, created_at
-      FROM users WHERE role = 'Citizen'
+      FROM users WHERE role = 'Citizen' AND municipality_id = ?
     `;
-    const params = [];
+    const params = [req.user.municipality_id];
 
     if (search) {
       sql += " AND (full_name LIKE ? OR email LIKE ?)";
@@ -213,11 +241,12 @@ async function getCitizens(req, res) {
 async function getCitizenDetail(req, res) {
   try {
     const { id } = req.params;
+    const municipalityId = req.user.municipality_id;
 
     const [userRows] = await pool.query(
       `SELECT user_id, full_name, email, phone, address, citizenship_no, status, created_at
-       FROM users WHERE user_id = ? AND role = 'Citizen'`,
-      [id]
+       FROM users WHERE user_id = ? AND role = 'Citizen' AND municipality_id = ?`,
+      [id, municipalityId]
     );
     if (userRows.length === 0) {
       return res.status(404).json({ success: false, error: "Citizen not found" });
@@ -229,105 +258,15 @@ async function getCitizenDetail(req, res) {
     const [complaints] = await pool.query(
       "SELECT * FROM complaints WHERE user_id = ? ORDER BY created_at DESC", [id]
     );
-    const [orders] = await pool.query(
-      "SELECT * FROM orders WHERE user_id = ? ORDER BY order_date DESC", [id]
-    );
 
-    res.json({ success: true, citizen: userRows[0], certificates, complaints, orders });
+    res.json({ success: true, citizen: userRows[0], certificates, complaints });
   } catch (err) {
     console.error("Get citizen detail error:", err);
     res.status(500).json({ success: false, error: "Failed to fetch citizen" });
   }
 }
 
-// ---------------------------------------------------------------------------
-// Business management
-// ---------------------------------------------------------------------------
-
-// GET /api/admin/businesses — list all businesses (filter with ?status=Pending)
-async function getBusinesses(req, res) {
-  try {
-    const { status } = req.query;
-    let sql = `
-      SELECT b.*, u.email, u.phone
-      FROM businesses b
-      JOIN users u ON b.user_id = u.user_id
-    `;
-    const params = [];
-    if (status) {
-      sql += " WHERE b.status = ?";
-      params.push(status);
-    }
-    sql += " ORDER BY b.created_at DESC";
-
-    const [rows] = await pool.query(sql, params);
-    res.json({ success: true, businesses: rows });
-  } catch (err) {
-    console.error("Get businesses error:", err);
-    res.status(500).json({ success: false, error: "Failed to fetch businesses" });
-  }
-}
-
-// GET /api/admin/businesses/:id — detail + product listing
-async function getBusinessDetail(req, res) {
-  try {
-    const { id } = req.params;
-
-    const [rows] = await pool.query(
-      `SELECT b.*, u.email, u.phone FROM businesses b JOIN users u ON b.user_id = u.user_id WHERE b.business_id = ?`,
-      [id]
-    );
-    if (rows.length === 0) {
-      return res.status(404).json({ success: false, error: "Business not found" });
-    }
-
-    const [products] = await pool.query(
-      "SELECT * FROM products WHERE business_id = ? ORDER BY created_at DESC", [id]
-    );
-
-    res.json({ success: true, business: rows[0], products });
-  } catch (err) {
-    console.error("Get business detail error:", err);
-    res.status(500).json({ success: false, error: "Failed to fetch business" });
-  }
-}
-
-// PATCH /api/admin/businesses/:id — approve, reject, suspend, or reactivate
-async function updateBusinessStatus(req, res) {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    if (!BUSINESS_STATUSES.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        error: `status must be one of: ${BUSINESS_STATUSES.join(", ")}`,
-      });
-    }
-
-    const [rows] = await pool.query("SELECT user_id FROM businesses WHERE business_id = ?", [id]);
-    if (rows.length === 0) {
-      return res.status(404).json({ success: false, error: "Business not found" });
-    }
-
-    await pool.query("UPDATE businesses SET status = ? WHERE business_id = ?", [status, id]);
-
-    await createNotification({
-      user_id: rows[0].user_id,
-      title: "Business status updated",
-      message: `Your business account status is now "${status}".`,
-      related_type: "business",
-      related_id: id,
-    });
-
-    res.json({ success: true, message: `Business ${status.toLowerCase()}` });
-  } catch (err) {
-    console.error("Update business status error:", err);
-    res.status(500).json({ success: false, error: "Failed to update business" });
-  }
-}
-
-// PATCH /api/admin/users/:id/status — block/unblock a citizen or business account
+// PATCH /api/admin/users/:id/status — block/unblock a citizen account
 async function updateUserStatus(req, res) {
   try {
     const { id } = req.params;
@@ -337,7 +276,10 @@ async function updateUserStatus(req, res) {
       return res.status(400).json({ success: false, error: "status must be Active or Blocked" });
     }
 
-    const [result] = await pool.query("UPDATE users SET status = ? WHERE user_id = ?", [status, id]);
+    const [result] = await pool.query(
+      "UPDATE users SET status = ? WHERE user_id = ? AND municipality_id = ?",
+      [status, id, req.user.municipality_id]
+    );
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ success: false, error: "User not found" });
@@ -392,9 +334,8 @@ async function updateAdminProfile(req, res) {
 
 module.exports = {
   getAdminStats,
-  getNotices, createNotice, updateNotice, deleteNotice,
+  getNotices, getMyMunicipalityNotices, createNotice, updateNotice, deleteNotice,
   getCitizens, getCitizenDetail,
-  getBusinesses, getBusinessDetail, updateBusinessStatus,
   updateUserStatus,
   getAdminProfile, updateAdminProfile,
 };

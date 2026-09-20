@@ -1,18 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import PreferenceToggles from "../components/PreferenceToggles";
-
-const ROLES = ["Citizen", "Business"];
+import api from "../api/axios";
 
 export default function Register() {
   const [form, setForm] = useState({
     full_name: "", email: "", phone: "", password: "",
-    role: "Citizen", address: "", citizenship_no: "",
-    // business-only fields
-    business_name: "", owner_name: "", business_type: "", pan_number: "",
+    role: "Citizen", address: "", citizenship_no: "", municipality_id: "",
   });
+  const [municipalities, setMunicipalities] = useState([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -20,6 +18,12 @@ export default function Register() {
   const { register } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    api.get("/locations/municipalities")
+      .then((res) => setMunicipalities(res.data.municipalities))
+      .catch(() => setMunicipalities([]));
+  }, []);
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -32,15 +36,14 @@ export default function Register() {
     try {
       const res = await register(form);
       setSuccess(true);
-      setTimeout(() => navigate("/login"), res.message?.includes("Awaiting") ? 2500 : 1200);
+      setTimeout(() => navigate("/login"), 1200);
+      void res;
     } catch (err) {
       setError(err.response?.data?.error || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
   }
-
-  const isBusiness = form.role === "Business";
 
   return (
     <div className="min-h-screen portal-photo-bg flex flex-col items-center justify-center px-4 py-12 relative">
@@ -51,12 +54,17 @@ export default function Register() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-portal-muted mb-1.5">{t("register.iAmA")}</label>
+            <label className="block text-sm text-portal-muted mb-1.5">{t("register.municipality")}</label>
             <select
-              value={form.role} onChange={(e) => update("role", e.target.value)}
+              required value={form.municipality_id} onChange={(e) => update("municipality_id", e.target.value)}
               className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
             >
-              {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+              <option value="">{t("register.selectMunicipality")}</option>
+              {municipalities.map((m) => (
+                <option key={m.municipality_id} value={m.municipality_id}>
+                  {m.local_body_name} ({m.type_name}) — {m.district_name}, {m.province_name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -101,55 +109,13 @@ export default function Register() {
             />
           </div>
 
-          {!isBusiness && (
-            <div>
-              <label className="block text-sm text-portal-muted mb-1.5">Citizenship No. (optional)</label>
-              <input
-                value={form.citizenship_no} onChange={(e) => update("citizenship_no", e.target.value)}
-                className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
-              />
-            </div>
-          )}
-
-          {isBusiness && (
-            <div className="border-t border-portal-panel-border pt-4 space-y-4">
-              <p className="text-xs text-portal-accent uppercase tracking-wide">Business Details</p>
-              <div>
-                <label className="block text-sm text-portal-muted mb-1.5">Business Name</label>
-                <input
-                  required value={form.business_name} onChange={(e) => update("business_name", e.target.value)}
-                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-portal-muted mb-1.5">Owner Name</label>
-                <input
-                  required value={form.owner_name} onChange={(e) => update("owner_name", e.target.value)}
-                  className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm text-portal-muted mb-1.5">Business Type</label>
-                  <input
-                    value={form.business_type} onChange={(e) => update("business_type", e.target.value)}
-                    placeholder="e.g. Grocery"
-                    className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text placeholder-portal-muted/60 focus:outline-none focus:ring-2 focus:ring-portal-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-portal-muted mb-1.5">PAN Number</label>
-                  <input
-                    value={form.pan_number} onChange={(e) => update("pan_number", e.target.value)}
-                    className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-portal-muted">
-                Your business will need Admin approval before you can list products.
-              </p>
-            </div>
-          )}
+          <div>
+            <label className="block text-sm text-portal-muted mb-1.5">Citizenship No. (optional)</label>
+            <input
+              value={form.citizenship_no} onChange={(e) => update("citizenship_no", e.target.value)}
+              className="w-full rounded-lg bg-[#0b1120] border border-portal-panel-border px-3 py-2.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
+            />
+          </div>
 
           {error && (
             <p className="text-sm text-portal-danger bg-portal-danger/10 border border-portal-danger/30 rounded-lg px-3 py-2">

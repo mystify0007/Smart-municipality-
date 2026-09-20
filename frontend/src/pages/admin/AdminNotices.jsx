@@ -3,7 +3,7 @@ import DashboardLayout from "../../components/DashboardLayout";
 import api from "../../api/axios";
 import { useLanguage } from "../../context/LanguageContext";
 
-const TARGET_ROLES = ["All", "Citizen", "Business", "Officer"];
+const TARGET_ROLES = ["All", "Citizen", "Officer"];
 const EMPTY_FORM = { title: "", description: "", target_role: "All" };
 
 export default function AdminNotices() {
@@ -16,7 +16,7 @@ export default function AdminNotices() {
 
   async function loadNotices() {
     try {
-      const res = await api.get("/notices");
+      const res = await api.get("/admin/notices");
       setNotices(res.data.notices);
     } finally {
       setLoading(false);

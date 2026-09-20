@@ -131,7 +131,11 @@ export default function ApplicationManagement() {
                         className="text-xs rounded-lg bg-[#0b1120] border border-portal-panel-border px-2 py-1.5 text-portal-text focus:outline-none focus:ring-2 focus:ring-portal-primary"
                       >
                         <option value="">Select officer</option>
-                        {officers.map((o) => <option key={o.user_id} value={o.user_id}>{o.full_name}</option>)}
+                        {officers.map((o) => (
+                          <option key={o.user_id} value={o.user_id}>
+                            {o.full_name} — {o.active_workload === 0 ? "Free" : `Busy (${o.active_workload})`}
+                          </option>
+                        ))}
                       </select>
                       <button
                         onClick={() => handleAssign(a.certificate_id)}

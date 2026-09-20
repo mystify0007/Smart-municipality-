@@ -7,10 +7,10 @@ const { uploadComplaintMedia } = require("../middleware/uploadMiddleware");
 router.post(
   "/",
   verifyToken,
-  requireRole("Citizen", "Business"),
+  requireRole("Citizen"),
   uploadComplaintMedia.single("media"),
   submitComplaint
 );
-router.get("/mine", verifyToken, requireRole("Citizen", "Business"), getMyComplaints);
+router.get("/mine", verifyToken, requireRole("Citizen"), getMyComplaints);
 
 module.exports = router;

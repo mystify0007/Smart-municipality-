@@ -1,32 +1,34 @@
 // controllers/notificationController.js
 // notifications: notification_id, user_id (specific recipient, nullable),
-//                role_target ('Citizen'|'Business'|'Officer'|'Admin'|'All', nullable),
+//                role_target ('Citizen'|'Officer'|'Admin'|'All', nullable),
+//                municipality_id (required alongside role_target — a
+//                broadcast never crosses Municipality boundaries),
 //                title, message, related_type, related_id, is_read, created_at
 const { pool } = require("../config/db");
 
 // Internal helper used by other controllers (officer verification,
 // application/complaint assignment, announcements) — not exposed as a route.
-// Pass either user_id (a specific recipient) or role_target (a broadcast),
-// not both.
-async function createNotification({ user_id, role_target, title, message, related_type, related_id }) {
+// Pass either user_id (a specific recipient) or role_target + municipality_id
+// (a broadcast to one Municipality's users), not both.
+async function createNotification({ user_id, role_target, municipality_id, title, message, related_type, related_id }) {
   await pool.query(
-    `INSERT INTO notifications (user_id, role_target, title, message, related_type, related_id)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [user_id || null, role_target || null, title, message, related_type || null, related_id || null]
+    `INSERT INTO notifications (user_id, role_target, municipality_id, title, message, related_type, related_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [user_id || null, role_target || null, municipality_id || null, title, message, related_type || null, related_id || null]
   );
 }
 
-// GET /api/notifications/mine — notifications addressed to me directly, to
-// my role, or broadcast to everyone
+// GET /api/notifications/mine — notifications addressed to me directly, or
+// broadcast to my role within my own Municipality
 async function getMyNotifications(req, res) {
   try {
-    const { user_id, role } = req.user;
+    const { user_id, role, municipality_id } = req.user;
     const [rows] = await pool.query(
       `SELECT * FROM notifications
-       WHERE user_id = ? OR role_target = ? OR role_target = 'All'
+       WHERE user_id = ? OR (role_target IN (?, 'All') AND municipality_id = ?)
        ORDER BY created_at DESC
        LIMIT 100`,
-      [user_id, role]
+      [user_id, role, municipality_id]
     );
     const unreadCount = rows.filter((n) => !n.is_read).length;
     res.json({ success: true, notifications: rows, unread_count: unreadCount });
@@ -40,12 +42,12 @@ async function getMyNotifications(req, res) {
 async function markNotificationRead(req, res) {
   try {
     const { id } = req.params;
-    const { user_id, role } = req.user;
+    const { user_id, role, municipality_id } = req.user;
 
     const [result] = await pool.query(
       `UPDATE notifications SET is_read = 1
-       WHERE notification_id = ? AND (user_id = ? OR role_target = ? OR role_target = 'All')`,
-      [id, user_id, role]
+       WHERE notification_id = ? AND (user_id = ? OR (role_target IN (?, 'All') AND municipality_id = ?))`,
+      [id, user_id, role, municipality_id]
     );
 
     if (result.affectedRows === 0) {
@@ -62,11 +64,11 @@ async function markNotificationRead(req, res) {
 // PATCH /api/notifications/read-all
 async function markAllRead(req, res) {
   try {
-    const { user_id, role } = req.user;
+    const { user_id, role, municipality_id } = req.user;
     await pool.query(
       `UPDATE notifications SET is_read = 1
-       WHERE (user_id = ? OR role_target = ? OR role_target = 'All') AND is_read = 0`,
-      [user_id, role]
+       WHERE (user_id = ? OR (role_target IN (?, 'All') AND municipality_id = ?)) AND is_read = 0`,
+      [user_id, role, municipality_id]
     );
     res.json({ success: true, message: "All notifications marked as read" });
   } catch (err) {

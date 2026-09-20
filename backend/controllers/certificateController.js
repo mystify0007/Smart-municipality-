@@ -26,9 +26,9 @@ async function applyForCertificate(req, res) {
     const documentPath = req.file ? `/uploads/certificates/${req.file.filename}` : null;
 
     const [result] = await pool.query(
-      `INSERT INTO certificates (user_id, certificate_type, purpose, status, applied_date, document_path)
-       VALUES (?, ?, ?, 'Pending', NOW(), ?)`,
-      [userId, certificate_type, purpose, documentPath]
+      `INSERT INTO certificates (user_id, municipality_id, certificate_type, purpose, status, applied_date, document_path)
+       VALUES (?, ?, ?, ?, 'Pending', NOW(), ?)`,
+      [userId, req.user.municipality_id, certificate_type, purpose, documentPath]
     );
 
     res.status(201).json({
@@ -43,7 +43,8 @@ async function applyForCertificate(req, res) {
 }
 
 // GET /api/admin/applications?status=&certificate_type=&officer_id= — every
-// application system-wide, for Admin's Application Management screen.
+// application in the Admin's own Municipality, for the Application
+// Management screen.
 async function adminListApplications(req, res) {
   try {
     const { status, certificate_type, officer_id } = req.query;
@@ -54,15 +55,14 @@ async function adminListApplications(req, res) {
       FROM certificates c
       JOIN users u ON c.user_id = u.user_id
       LEFT JOIN users o ON c.assigned_officer_id = o.user_id
+      WHERE c.municipality_id = ?
     `;
-    const conditions = [];
-    const params = [];
+    const params = [req.user.municipality_id];
 
-    if (status) { conditions.push("c.status = ?"); params.push(status); }
-    if (certificate_type) { conditions.push("c.certificate_type = ?"); params.push(certificate_type); }
-    if (officer_id) { conditions.push("c.assigned_officer_id = ?"); params.push(officer_id); }
+    if (status) { sql += " AND c.status = ?"; params.push(status); }
+    if (certificate_type) { sql += " AND c.certificate_type = ?"; params.push(certificate_type); }
+    if (officer_id) { sql += " AND c.assigned_officer_id = ?"; params.push(officer_id); }
 
-    if (conditions.length > 0) sql += " WHERE " + conditions.join(" AND ");
     sql += " ORDER BY c.applied_date DESC";
 
     const [rows] = await pool.query(sql, params);
@@ -78,20 +78,24 @@ async function assignApplication(req, res) {
   try {
     const { id } = req.params;
     const { officer_id } = req.body;
+    const municipalityId = req.user.municipality_id;
 
     if (!officer_id) {
       return res.status(400).json({ success: false, error: "officer_id is required" });
     }
 
     const [officerRows] = await pool.query(
-      "SELECT user_id, full_name FROM users WHERE user_id = ? AND role = 'Officer' AND officer_status = 'Approved'",
-      [officer_id]
+      "SELECT user_id, full_name FROM users WHERE user_id = ? AND role = 'Officer' AND officer_status = 'Approved' AND municipality_id = ?",
+      [officer_id, municipalityId]
     );
     if (officerRows.length === 0) {
-      return res.status(400).json({ success: false, error: "officer_id must be an approved Officer" });
+      return res.status(400).json({ success: false, error: "officer_id must be an approved Officer in your municipality" });
     }
 
-    const [existing] = await pool.query("SELECT * FROM certificates WHERE certificate_id = ?", [id]);
+    const [existing] = await pool.query(
+      "SELECT * FROM certificates WHERE certificate_id = ? AND municipality_id = ?",
+      [id, municipalityId]
+    );
     if (existing.length === 0) {
       return res.status(404).json({ success: false, error: "Application not found" });
     }

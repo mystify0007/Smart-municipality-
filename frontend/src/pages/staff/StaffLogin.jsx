@@ -99,7 +99,7 @@ export default function StaffLogin() {
           </p>
           <p>
             <a href="/login" className="text-sm text-slate-500 hover:underline">
-              ← Citizen / Business Login
+              ← Citizen Login
             </a>
           </p>
         </div>

@@ -47,12 +47,6 @@ const uploadCertificateDoc = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
-const uploadProductImage = multer({
-  storage: makeStorage("products"),
-  fileFilter: makeFileFilter(IMAGE_MIME_TYPES),
-  limits: { fileSize: 5 * 1024 * 1024 },
-});
-
 // Complaints accept photo OR video evidence, so this one gets a larger
 // size limit (videos are much bigger than a photo) and a wider mime list.
 const uploadComplaintMedia = multer({
@@ -69,5 +63,5 @@ const uploadOfficerDocs = multer({
 });
 
 module.exports = {
-  uploadCertificateDoc, uploadProductImage, uploadComplaintMedia, uploadOfficerDocs,
+  uploadCertificateDoc, uploadComplaintMedia, uploadOfficerDocs,
 };

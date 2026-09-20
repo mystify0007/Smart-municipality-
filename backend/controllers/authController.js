@@ -1,31 +1,37 @@
 // controllers/authController.js
-// users: user_id, full_name, email, phone, password, role, address,
-//        department, designation, officer_status ('Pending'|'Approved'|'Rejected'|'Suspended'),
+// users: user_id, full_name, email, phone, password, role ('Citizen'|'Officer'|'Admin'),
+//        municipality_id, address, department, designation,
+//        officer_status ('Pending'|'Approved'|'Rejected'|'Suspended'),
 //        rejection_reason, verified_by, verified_at,
 //        citizenship_no, profile_image, created_at, status ('Active'|'Blocked')
 // officer_documents: document_id, user_id, file_path, uploaded_at
-// businesses: business_id, user_id, business_name, owner_name, business_type,
-//             pan_number, address, status ('Pending'|'Approved'|'Rejected'|'Suspended'), created_at
+// municipalities: municipality_id, local_body_id, office_address, contact_email,
+//                 contact_phone, created_at
 //
 // Auth is split into three completely separate paths:
-//   /api/auth/register + /api/auth/login             -> Citizen, Business only
+//   /api/auth/register + /api/auth/login             -> Citizen only
 //   /api/auth/staff/register + /api/auth/staff/login -> Officer only (register),
 //                                                        Officer + Admin (login)
-//   /api/auth/admin/bootstrap                         -> the ONLY way to create
-//                                                        the system's single Admin
+//   /api/auth/admin/bootstrap                         -> the ONLY way to
+//                                                        provision a Municipality's Admin
 //
 // Admin is never a selectable role anywhere a normal user can reach. It is
-// provisioned once, out-of-band, through adminBootstrap below, which is
-// gated by a secret key from the server's own .env and refuses outright if
-// an Admin already exists — backed by a DB trigger (see
-// migration_rbac_admin_officer.sql) so even an application bug can't create
-// a second one.
+// provisioned once per Municipality, out-of-band, through adminBootstrap
+// below, which is gated by a secret key from the server's own .env and
+// refuses outright if that Municipality already has an Admin — backed by a
+// DB trigger (see migration_municipality_admin_trigger.sql) so even an
+// application bug can't create a second one for the same Municipality.
+//
+// Every account (Citizen, Officer, Admin) belongs to exactly one
+// Municipality. A Citizen or Officer can only register under a Municipality
+// that already exists on the platform (i.e. already has an Admin to serve
+// them) — see GET /api/locations/municipalities.
 
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { pool } = require("../config/db");
 
-const PUBLIC_ROLES = ["Citizen", "Business"];
+const PUBLIC_ROLES = ["Citizen"];
 const STAFF_LOGIN_ROLES = ["Officer", "Admin"];
 const SALT_ROUNDS = 10;
 
@@ -33,7 +39,13 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function signToken(user) {
   return jwt.sign(
-    { user_id: user.user_id, email: user.email, role: user.role, full_name: user.full_name },
+    {
+      user_id: user.user_id,
+      email: user.email,
+      role: user.role,
+      full_name: user.full_name,
+      municipality_id: user.municipality_id,
+    },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || "1d" }
   );
@@ -45,6 +57,8 @@ function toPublicUser(user) {
     full_name: user.full_name,
     email: user.email,
     role: user.role,
+    municipality_id: user.municipality_id,
+    municipality_name: user.municipality_name,
     address: user.address,
     profile_image: user.profile_image,
     department: user.department,
@@ -53,21 +67,46 @@ function toPublicUser(user) {
   };
 }
 
+async function municipalityExists(municipalityId) {
+  const [rows] = await pool.query(
+    "SELECT municipality_id FROM municipalities WHERE municipality_id = ?",
+    [municipalityId]
+  );
+  return rows.length > 0;
+}
+
+// Every login response includes the account's Municipality name (the Local
+// Body's official name), so the frontend can show "Pokhara Metropolitan
+// City" rather than just an id.
+async function findUserWithMunicipality(email) {
+  const [rows] = await pool.query(
+    `SELECT u.*, lb.name AS municipality_name
+     FROM users u
+     LEFT JOIN municipalities m ON u.municipality_id = m.municipality_id
+     LEFT JOIN local_bodies lb ON m.local_body_id = lb.local_body_id
+     WHERE u.email = ?`,
+    [email]
+  );
+  return rows.length > 0 ? rows[0] : null;
+}
+
 // ---------------------------------------------------------------------------
-// PUBLIC PORTAL — Citizen, Business
+// PUBLIC PORTAL — Citizen
 // ---------------------------------------------------------------------------
 
 async function register(req, res) {
   const connection = await pool.getConnection();
   try {
     const {
-      full_name, email, phone, password, role, address, citizenship_no,
-      business_name, owner_name, business_type, pan_number,
+      full_name, email, phone, password, role, address, citizenship_no, municipality_id,
     } = req.body;
 
-    if (!full_name || !email || !password || !role) {
+    if (!full_name || !email || !password || !role || !municipality_id) {
       connection.release();
-      return res.status(400).json({ success: false, error: "full_name, email, password, and role are required" });
+      return res.status(400).json({
+        success: false,
+        error: "full_name, email, password, role, and municipality_id are required",
+      });
     }
 
     if (!PUBLIC_ROLES.includes(role)) {
@@ -88,12 +127,9 @@ async function register(req, res) {
       return res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
     }
 
-    if (role === "Business" && (!business_name || !owner_name)) {
+    if (!(await municipalityExists(municipality_id))) {
       connection.release();
-      return res.status(400).json({
-        success: false,
-        error: "business_name and owner_name are required when registering as a Business",
-      });
+      return res.status(400).json({ success: false, error: "Selected municipality does not exist" });
     }
 
     const [existing] = await connection.query("SELECT user_id FROM users WHERE email = ?", [email]);
@@ -104,35 +140,19 @@ async function register(req, res) {
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    await connection.beginTransaction();
-
     const [userResult] = await connection.query(
-      `INSERT INTO users (full_name, email, phone, password, role, address, citizenship_no)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [full_name, email, phone || null, hashedPassword, role, address || null, citizenship_no || null]
+      `INSERT INTO users (full_name, email, phone, password, role, municipality_id, address, citizenship_no)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [full_name, email, phone || null, hashedPassword, role, municipality_id, address || null, citizenship_no || null]
     );
     const userId = userResult.insertId;
 
-    if (role === "Business") {
-      await connection.query(
-        `INSERT INTO businesses (user_id, business_name, owner_name, business_type, pan_number, address, status)
-         VALUES (?, ?, ?, ?, ?, ?, 'Pending')`,
-        [userId, business_name, owner_name, business_type || null, pan_number || null, address || null]
-      );
-    }
-
-    await connection.commit();
-
     return res.status(201).json({
       success: true,
-      message:
-        role === "Business"
-          ? "Business account registered. Awaiting admin approval before you can list products."
-          : "User registered successfully",
-      user: { user_id: userId, full_name, email, role },
+      message: "User registered successfully",
+      user: { user_id: userId, full_name, email, role, municipality_id },
     });
   } catch (err) {
-    await connection.rollback();
     console.error("Register error:", err);
     return res.status(500).json({ success: false, error: "Registration failed" });
   } finally {
@@ -148,12 +168,10 @@ async function login(req, res) {
       return res.status(400).json({ success: false, error: "Email and password are required" });
     }
 
-    const [rows] = await pool.query("SELECT * FROM users WHERE email = ?", [email]);
-    if (rows.length === 0) {
+    const user = await findUserWithMunicipality(email);
+    if (!user) {
       return res.status(401).json({ success: false, error: "Invalid email or password" });
     }
-
-    const user = rows[0];
 
     if (STAFF_LOGIN_ROLES.includes(user.role)) {
       return res.status(403).json({
@@ -200,16 +218,18 @@ async function login(req, res) {
 async function staffRegister(req, res) {
   const connection = await pool.getConnection();
   try {
-    const { full_name, email, phone, password, address, department, designation } = req.body;
+    const {
+      full_name, email, phone, password, address, department, designation, municipality_id,
+    } = req.body;
 
     // Note there is no `role` field read from the request body at all —
     // this endpoint can only ever create an Officer. That is what keeps a
     // normal user from registering as, or selecting, Admin.
-    if (!full_name || !email || !password || !department || !designation) {
+    if (!full_name || !email || !password || !department || !designation || !municipality_id) {
       connection.release();
       return res.status(400).json({
         success: false,
-        error: "full_name, email, password, department, and designation are required",
+        error: "full_name, email, password, department, designation, and municipality_id are required",
       });
     }
 
@@ -223,6 +243,11 @@ async function staffRegister(req, res) {
       return res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
     }
 
+    if (!(await municipalityExists(municipality_id))) {
+      connection.release();
+      return res.status(400).json({ success: false, error: "Selected municipality does not exist" });
+    }
+
     const [existing] = await connection.query("SELECT user_id FROM users WHERE email = ?", [email]);
     if (existing.length > 0) {
       connection.release();
@@ -234,9 +259,9 @@ async function staffRegister(req, res) {
     await connection.beginTransaction();
 
     const [result] = await connection.query(
-      `INSERT INTO users (full_name, email, phone, password, role, address, department, designation, officer_status)
-       VALUES (?, ?, ?, ?, 'Officer', ?, ?, ?, 'Pending')`,
-      [full_name, email, phone || null, hashedPassword, address || null, department, designation]
+      `INSERT INTO users (full_name, email, phone, password, role, municipality_id, address, department, designation, officer_status)
+       VALUES (?, ?, ?, ?, 'Officer', ?, ?, ?, ?, 'Pending')`,
+      [full_name, email, phone || null, hashedPassword, municipality_id, address || null, department, designation]
     );
     const userId = result.insertId;
 
@@ -253,7 +278,7 @@ async function staffRegister(req, res) {
     return res.status(201).json({
       success: true,
       message: "Registration submitted. Your officer account is pending Admin verification — you'll be notified once it's reviewed.",
-      user: { user_id: userId, full_name, email, role: "Officer", officer_status: "Pending" },
+      user: { user_id: userId, full_name, email, role: "Officer", municipality_id, officer_status: "Pending" },
     });
   } catch (err) {
     await connection.rollback();
@@ -272,12 +297,10 @@ async function staffLogin(req, res) {
       return res.status(400).json({ success: false, error: "Email and password are required" });
     }
 
-    const [rows] = await pool.query("SELECT * FROM users WHERE email = ?", [email]);
-    if (rows.length === 0) {
+    const user = await findUserWithMunicipality(email);
+    if (!user) {
       return res.status(401).json({ success: false, error: "Invalid email or password" });
     }
-
-    const user = rows[0];
 
     if (!STAFF_LOGIN_ROLES.includes(user.role)) {
       return res.status(403).json({
@@ -343,15 +366,21 @@ async function staffLogin(req, res) {
 }
 
 // ---------------------------------------------------------------------------
-// ADMIN BOOTSTRAP — not linked from any UI. The only way to create the
-// system's single Admin account. See the module comment at the top.
+// ADMIN BOOTSTRAP — not linked from any UI. The only way to onboard a new
+// Municipality and create its Admin account. See the module comment at the
+// top.
 // ---------------------------------------------------------------------------
 
 async function adminBootstrap(req, res) {
+  const connection = await pool.getConnection();
   try {
-    const { full_name, email, password, bootstrap_key } = req.body;
+    const {
+      full_name, email, password, bootstrap_key,
+      local_body_id, office_address, contact_email, contact_phone,
+    } = req.body;
 
     if (!process.env.ADMIN_BOOTSTRAP_KEY) {
+      connection.release();
       return res.status(503).json({
         success: false,
         error: "Admin bootstrap is not configured. Set ADMIN_BOOTSTRAP_KEY in the server's .env first.",
@@ -359,52 +388,100 @@ async function adminBootstrap(req, res) {
     }
 
     if (!bootstrap_key || bootstrap_key !== process.env.ADMIN_BOOTSTRAP_KEY) {
+      connection.release();
       return res.status(403).json({ success: false, error: "Invalid bootstrap key" });
     }
 
-    if (!full_name || !email || !password) {
-      return res.status(400).json({ success: false, error: "full_name, email, and password are required" });
+    if (!full_name || !email || !password || !local_body_id) {
+      connection.release();
+      return res.status(400).json({
+        success: false,
+        error: "full_name, email, password, and local_body_id are required",
+      });
     }
 
     if (!emailRegex.test(email)) {
+      connection.release();
       return res.status(400).json({ success: false, error: "Invalid email format" });
     }
 
     if (password.length < 6) {
+      connection.release();
       return res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
     }
 
-    const [[{ adminCount }]] = await pool.query("SELECT COUNT(*) AS adminCount FROM users WHERE role = 'Admin'");
-    if (adminCount > 0) {
-      return res.status(409).json({ success: false, error: "An Admin account already exists. Only one Admin is allowed." });
+    const [localBodyRows] = await connection.query(
+      "SELECT local_body_id FROM local_bodies WHERE local_body_id = ?",
+      [local_body_id]
+    );
+    if (localBodyRows.length === 0) {
+      connection.release();
+      return res.status(400).json({ success: false, error: "Unknown local_body_id" });
     }
 
-    const [existing] = await pool.query("SELECT user_id FROM users WHERE email = ?", [email]);
-    if (existing.length > 0) {
+    const [existingUser] = await connection.query("SELECT user_id FROM users WHERE email = ?", [email]);
+    if (existingUser.length > 0) {
+      connection.release();
       return res.status(409).json({ success: false, error: "Email is already registered" });
+    }
+
+    await connection.beginTransaction();
+
+    // Reuse the Municipality row if this Local Body was already onboarded
+    // (e.g. a previous Admin account was removed); otherwise create it.
+    let [municipalityRows] = await connection.query(
+      "SELECT * FROM municipalities WHERE local_body_id = ?",
+      [local_body_id]
+    );
+
+    let municipalityId;
+    if (municipalityRows.length > 0) {
+      municipalityId = municipalityRows[0].municipality_id;
+    } else {
+      const [municipalityResult] = await connection.query(
+        "INSERT INTO municipalities (local_body_id, office_address, contact_email, contact_phone) VALUES (?, ?, ?, ?)",
+        [local_body_id, office_address || null, contact_email || null, contact_phone || null]
+      );
+      municipalityId = municipalityResult.insertId;
+    }
+
+    const [[{ adminCount }]] = await connection.query(
+      "SELECT COUNT(*) AS adminCount FROM users WHERE role = 'Admin' AND municipality_id = ?",
+      [municipalityId]
+    );
+    if (adminCount > 0) {
+      await connection.rollback();
+      connection.release();
+      return res.status(409).json({ success: false, error: "This municipality already has an Admin account." });
     }
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-    const [result] = await pool.query(
-      "INSERT INTO users (full_name, email, password, role) VALUES (?, ?, ?, 'Admin')",
-      [full_name, email, hashedPassword]
+    const [result] = await connection.query(
+      "INSERT INTO users (full_name, email, password, role, municipality_id) VALUES (?, ?, ?, 'Admin', ?)",
+      [full_name, email, hashedPassword, municipalityId]
     );
+
+    await connection.commit();
 
     return res.status(201).json({
       success: true,
       message: "Admin account created.",
-      user: { user_id: result.insertId, full_name, email, role: "Admin" },
+      user: { user_id: result.insertId, full_name, email, role: "Admin", municipality_id: municipalityId },
     });
   } catch (err) {
-    // A DB trigger (migration_rbac_admin_officer.sql) throws SQLSTATE 45000
-    // if a race ever let two bootstrap calls both pass the COUNT(*) check
-    // above — this is the last line of defense against a second Admin.
+    await connection.rollback();
+    // A DB trigger (migration_municipality_admin_trigger.sql) throws SQLSTATE
+    // 45000 if a race ever let two bootstrap calls both pass the COUNT(*)
+    // check above — this is the last line of defense against a second Admin
+    // for the same Municipality.
     if (err && err.sqlState === "45000") {
-      return res.status(409).json({ success: false, error: "An Admin account already exists. Only one Admin is allowed." });
+      return res.status(409).json({ success: false, error: "This municipality already has an Admin account." });
     }
     console.error("Admin bootstrap error:", err);
     return res.status(500).json({ success: false, error: "Failed to create admin account" });
+  } finally {
+    connection.release();
   }
 }
 

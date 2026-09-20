@@ -6,7 +6,7 @@ const {
 const { verifyToken } = require("../middleware/authMiddleware");
 const { uploadOfficerDocs } = require("../middleware/uploadMiddleware");
 
-// Public portal — Citizen, Business
+// Public portal — Citizen
 router.post("/register", register);
 router.post("/login", login);
 
@@ -15,7 +15,7 @@ router.post("/staff/register", uploadOfficerDocs.array("documents", 5), staffReg
 router.post("/staff/login", staffLogin);
 
 // Admin bootstrap — not linked from any UI, see authController.js. The only
-// way the system's single Admin account is ever created.
+// way a Municipality's Admin account is ever created.
 router.post("/admin/bootstrap", adminBootstrap);
 
 // Shared — any authenticated role

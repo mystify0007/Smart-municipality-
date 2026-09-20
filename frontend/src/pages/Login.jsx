@@ -6,7 +6,6 @@ import PreferenceToggles from "../components/PreferenceToggles";
 
 const ROLE_ROUTES = {
   Citizen: "/citizen/dashboard",
-  Business: "/business/dashboard",
   Officer: "/officer/dashboard",
   Admin: "/admin/dashboard",
 };

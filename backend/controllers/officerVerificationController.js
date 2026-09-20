@@ -7,20 +7,28 @@ const { createNotification } = require("./notificationController");
 
 const OFFICER_STATUSES = ["Pending", "Approved", "Rejected", "Suspended"];
 
-// GET /api/admin/officers?status=Pending — list Officer accounts, optionally
-// filtered by verification status
+// GET /api/admin/officers?status=Pending — list Officer accounts in the
+// Admin's own Municipality, optionally filtered by verification status. Each
+// row includes active_workload — how many assigned applications/complaints
+// are currently in progress for that officer — so the Admin can see at a
+// glance who is free before assigning new work.
 async function listOfficers(req, res) {
   try {
     const { status } = req.query;
 
     let sql = `
-      SELECT user_id, full_name, email, phone, department, designation,
-             officer_status, rejection_reason, verified_by, verified_at,
-             status AS account_status, created_at
-      FROM users
-      WHERE role = 'Officer'
+      SELECT u.user_id, u.full_name, u.email, u.phone, u.department, u.designation,
+             u.officer_status, u.rejection_reason, u.verified_by, u.verified_at,
+             u.status AS account_status, u.created_at,
+             (
+               (SELECT COUNT(*) FROM certificates c WHERE c.assigned_officer_id = u.user_id AND c.status = 'Processing')
+               +
+               (SELECT COUNT(*) FROM complaints cp WHERE cp.assigned_officer_id = u.user_id AND cp.status = 'In Progress')
+             ) AS active_workload
+      FROM users u
+      WHERE u.role = 'Officer' AND u.municipality_id = ?
     `;
-    const params = [];
+    const params = [req.user.municipality_id];
 
     if (status) {
       if (!OFFICER_STATUSES.includes(status)) {
@@ -29,11 +37,11 @@ async function listOfficers(req, res) {
           error: `status must be one of: ${OFFICER_STATUSES.join(", ")}`,
         });
       }
-      sql += " AND officer_status = ?";
+      sql += " AND u.officer_status = ?";
       params.push(status);
     }
 
-    sql += " ORDER BY created_at DESC";
+    sql += " ORDER BY active_workload ASC, u.created_at DESC";
 
     const [rows] = await pool.query(sql, params);
     res.json({ success: true, officers: rows });
@@ -52,8 +60,8 @@ async function getOfficerDetail(req, res) {
       `SELECT user_id, full_name, email, phone, address, department, designation,
               officer_status, rejection_reason, verified_by, verified_at,
               status AS account_status, created_at
-       FROM users WHERE user_id = ? AND role = 'Officer'`,
-      [id]
+       FROM users WHERE user_id = ? AND role = 'Officer' AND municipality_id = ?`,
+      [id, req.user.municipality_id]
     );
 
     if (rows.length === 0) {
@@ -72,8 +80,11 @@ async function getOfficerDetail(req, res) {
   }
 }
 
-async function findOfficer(id) {
-  const [rows] = await pool.query("SELECT * FROM users WHERE user_id = ? AND role = 'Officer'", [id]);
+async function findOfficer(id, municipalityId) {
+  const [rows] = await pool.query(
+    "SELECT * FROM users WHERE user_id = ? AND role = 'Officer' AND municipality_id = ?",
+    [id, municipalityId]
+  );
   return rows.length > 0 ? rows[0] : null;
 }
 
@@ -81,7 +92,7 @@ async function findOfficer(id) {
 async function approveOfficer(req, res) {
   try {
     const { id } = req.params;
-    const officer = await findOfficer(id);
+    const officer = await findOfficer(id, req.user.municipality_id);
     if (!officer) return res.status(404).json({ success: false, error: "Officer not found" });
 
     await pool.query(
@@ -116,7 +127,7 @@ async function rejectOfficer(req, res) {
       return res.status(400).json({ success: false, error: "A rejection reason is required" });
     }
 
-    const officer = await findOfficer(id);
+    const officer = await findOfficer(id, req.user.municipality_id);
     if (!officer) return res.status(404).json({ success: false, error: "Officer not found" });
 
     await pool.query(
@@ -145,7 +156,7 @@ async function rejectOfficer(req, res) {
 async function suspendOfficer(req, res) {
   try {
     const { id } = req.params;
-    const officer = await findOfficer(id);
+    const officer = await findOfficer(id, req.user.municipality_id);
     if (!officer) return res.status(404).json({ success: false, error: "Officer not found" });
 
     if (officer.officer_status !== "Approved") {
@@ -176,7 +187,7 @@ async function suspendOfficer(req, res) {
 async function activateOfficer(req, res) {
   try {
     const { id } = req.params;
-    const officer = await findOfficer(id);
+    const officer = await findOfficer(id, req.user.municipality_id);
     if (!officer) return res.status(404).json({ success: false, error: "Officer not found" });
 
     if (officer.officer_status !== "Suspended") {
