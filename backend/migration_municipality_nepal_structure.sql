@@ -6,8 +6,13 @@
 -- administrative hierarchy and removes the Business role entirely:
 --   - Province -> District -> Local Body (the official government structure)
 --   - Municipality = one onboarded Local Body running this platform
---   - Exactly ONE Admin per Municipality (not one Admin globally any more)
---   - Citizen, Officer and Admin all belong to a Municipality
+--   - TWO admin tiers, mirroring Nepal's own government layers:
+--       - Province Admin: exactly one per Province, oversees every
+--         Municipality onboarded within it and creates their Admins
+--       - Municipality Admin: exactly one per Municipality, manages that
+--         Municipality's citizens/officers and assigns work to its officers
+--   - Citizen, Officer, and Municipality Admin all belong to a Municipality;
+--     a Province Admin belongs to a Province instead
 --   - Certificates/Complaints are scoped to the Municipality they were filed in
 --   - The Business role, and everything that only existed to serve it
 --     (marketplace, cart, orders, products, categories), is dropped.
@@ -117,12 +122,20 @@ DELETE FROM users WHERE role = 'Business';
 
 -- ---------------------------------------------------------------------------
 -- 4. users: drop the Business role, scope every account to a Municipality
+--    (or, for a Province Admin, to a Province instead). admin_scope is NULL
+--    for Citizen/Officer and only ever set for role='Admin':
+--      'Province'     -> province_id set, municipality_id NULL
+--      'Municipality' -> municipality_id set, province_id NULL
 -- ---------------------------------------------------------------------------
 ALTER TABLE users
   MODIFY COLUMN role ENUM('Citizen','Officer','Admin') NOT NULL;
 
 ALTER TABLE users
-  ADD COLUMN municipality_id INT NULL AFTER role,
+  ADD COLUMN admin_scope ENUM('Province','Municipality') NULL AFTER role,
+  ADD COLUMN province_id INT NULL AFTER admin_scope,
+  ADD COLUMN municipality_id INT NULL AFTER province_id,
+  ADD CONSTRAINT fk_users_province
+    FOREIGN KEY (province_id) REFERENCES provinces(province_id),
   ADD CONSTRAINT fk_users_municipality
     FOREIGN KEY (municipality_id) REFERENCES municipalities(municipality_id);
 
@@ -191,8 +204,9 @@ DELETE FROM system_settings
   WHERE setting_key IN ('municipality_name', 'municipality_address', 'contact_email', 'contact_phone');
 
 -- ---------------------------------------------------------------------------
--- 9. DB-level "one Admin per Municipality" enforcement (defense in depth
---    alongside the application-layer check in authController.js) lives in
---    its own file, migration_municipality_admin_trigger.sql — same
---    phpMyAdmin DELIMITER caveat as before, see that file for details.
+-- 9. DB-level "one Admin per Province, one Admin per Municipality"
+--    enforcement (defense in depth alongside the application-layer checks in
+--    authController.js) lives in its own file,
+--    migration_municipality_admin_trigger.sql — same phpMyAdmin DELIMITER
+--    caveat as before, see that file for details.
 -- ---------------------------------------------------------------------------

@@ -44,6 +44,8 @@ function signToken(user) {
       email: user.email,
       role: user.role,
       full_name: user.full_name,
+      admin_scope: user.admin_scope,
+      province_id: user.province_id,
       municipality_id: user.municipality_id,
     },
     process.env.JWT_SECRET,
@@ -57,6 +59,9 @@ function toPublicUser(user) {
     full_name: user.full_name,
     email: user.email,
     role: user.role,
+    admin_scope: user.admin_scope,
+    province_id: user.province_id,
+    province_name: user.province_name,
     municipality_id: user.municipality_id,
     municipality_name: user.municipality_name,
     address: user.address,
@@ -75,15 +80,24 @@ async function municipalityExists(municipalityId) {
   return rows.length > 0;
 }
 
+async function provinceExists(provinceId) {
+  const [rows] = await pool.query(
+    "SELECT province_id FROM provinces WHERE province_id = ?",
+    [provinceId]
+  );
+  return rows.length > 0;
+}
+
 // Every login response includes the account's Municipality name (the Local
-// Body's official name), so the frontend can show "Pokhara Metropolitan
-// City" rather than just an id.
+// Body's official name) and/or Province name, so the frontend can show
+// "Pokhara Metropolitan City" or "Gandaki Pradesh" rather than just an id.
 async function findUserWithMunicipality(email) {
   const [rows] = await pool.query(
-    `SELECT u.*, lb.name AS municipality_name
+    `SELECT u.*, lb.name AS municipality_name, p.name AS province_name
      FROM users u
      LEFT JOIN municipalities m ON u.municipality_id = m.municipality_id
      LEFT JOIN local_bodies lb ON m.local_body_id = lb.local_body_id
+     LEFT JOIN provinces p ON u.province_id = p.province_id
      WHERE u.email = ?`,
     [email]
   );
@@ -366,21 +380,18 @@ async function staffLogin(req, res) {
 }
 
 // ---------------------------------------------------------------------------
-// ADMIN BOOTSTRAP — not linked from any UI. The only way to onboard a new
-// Municipality and create its Admin account. See the module comment at the
-// top.
+// ADMIN BOOTSTRAP — not linked from any UI. The only way to create a
+// Province Admin (there are at most 7, one per Province). A Province Admin
+// then creates Municipality Admins within their own Province themselves —
+// see createMunicipalityAdmin below — so the shared bootstrap key never has
+// to be handed out for every single Municipality.
 // ---------------------------------------------------------------------------
 
 async function adminBootstrap(req, res) {
-  const connection = await pool.getConnection();
   try {
-    const {
-      full_name, email, password, bootstrap_key,
-      local_body_id, office_address, contact_email, contact_phone,
-    } = req.body;
+    const { full_name, email, password, bootstrap_key, province_id } = req.body;
 
     if (!process.env.ADMIN_BOOTSTRAP_KEY) {
-      connection.release();
       return res.status(503).json({
         success: false,
         error: "Admin bootstrap is not configured. Set ADMIN_BOOTSTRAP_KEY in the server's .env first.",
@@ -388,9 +399,83 @@ async function adminBootstrap(req, res) {
     }
 
     if (!bootstrap_key || bootstrap_key !== process.env.ADMIN_BOOTSTRAP_KEY) {
-      connection.release();
       return res.status(403).json({ success: false, error: "Invalid bootstrap key" });
     }
+
+    if (!full_name || !email || !password || !province_id) {
+      return res.status(400).json({
+        success: false,
+        error: "full_name, email, password, and province_id are required",
+      });
+    }
+
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, error: "Invalid email format" });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
+    }
+
+    if (!(await provinceExists(province_id))) {
+      return res.status(400).json({ success: false, error: "Unknown province_id" });
+    }
+
+    const [existingUser] = await pool.query("SELECT user_id FROM users WHERE email = ?", [email]);
+    if (existingUser.length > 0) {
+      return res.status(409).json({ success: false, error: "Email is already registered" });
+    }
+
+    const [[{ adminCount }]] = await pool.query(
+      "SELECT COUNT(*) AS adminCount FROM users WHERE role = 'Admin' AND admin_scope = 'Province' AND province_id = ?",
+      [province_id]
+    );
+    if (adminCount > 0) {
+      return res.status(409).json({ success: false, error: "This province already has an Admin account." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+    const [result] = await pool.query(
+      "INSERT INTO users (full_name, email, password, role, admin_scope, province_id) VALUES (?, ?, ?, 'Admin', 'Province', ?)",
+      [full_name, email, hashedPassword, province_id]
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Province Admin account created.",
+      user: {
+        user_id: result.insertId, full_name, email, role: "Admin",
+        admin_scope: "Province", province_id,
+      },
+    });
+  } catch (err) {
+    // A DB trigger (migration_municipality_admin_trigger.sql) throws SQLSTATE
+    // 45000 if a race ever let two bootstrap calls both pass the COUNT(*)
+    // check above — this is the last line of defense against a second Admin
+    // for the same Province.
+    if (err && err.sqlState === "45000") {
+      return res.status(409).json({ success: false, error: "This province already has an Admin account." });
+    }
+    console.error("Admin bootstrap error:", err);
+    return res.status(500).json({ success: false, error: "Failed to create admin account" });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// MUNICIPALITY ADMIN CREATION — a Province Admin's own privilege, not
+// self-service and not gated by the shared bootstrap key. Onboards a Local
+// Body within the caller's own Province (creating the Municipality row if
+// it doesn't exist yet) and creates its one Admin account.
+// ---------------------------------------------------------------------------
+
+async function createMunicipalityAdmin(req, res) {
+  const connection = await pool.getConnection();
+  try {
+    const {
+      full_name, email, password,
+      local_body_id, office_address, contact_email, contact_phone,
+    } = req.body;
 
     if (!full_name || !email || !password || !local_body_id) {
       connection.release();
@@ -410,13 +495,21 @@ async function adminBootstrap(req, res) {
       return res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
     }
 
+    // The Local Body must exist AND belong to the calling Province Admin's
+    // own Province — a Province Admin can only onboard Municipalities
+    // within their own Province.
     const [localBodyRows] = await connection.query(
-      "SELECT local_body_id FROM local_bodies WHERE local_body_id = ?",
-      [local_body_id]
+      `SELECT lb.local_body_id FROM local_bodies lb
+       JOIN districts d ON lb.district_id = d.district_id
+       WHERE lb.local_body_id = ? AND d.province_id = ?`,
+      [local_body_id, req.user.province_id]
     );
     if (localBodyRows.length === 0) {
       connection.release();
-      return res.status(400).json({ success: false, error: "Unknown local_body_id" });
+      return res.status(400).json({
+        success: false,
+        error: "local_body_id must be a valid Local Body within your own province",
+      });
     }
 
     const [existingUser] = await connection.query("SELECT user_id FROM users WHERE email = ?", [email]);
@@ -429,7 +522,7 @@ async function adminBootstrap(req, res) {
 
     // Reuse the Municipality row if this Local Body was already onboarded
     // (e.g. a previous Admin account was removed); otherwise create it.
-    let [municipalityRows] = await connection.query(
+    const [municipalityRows] = await connection.query(
       "SELECT * FROM municipalities WHERE local_body_id = ?",
       [local_body_id]
     );
@@ -446,7 +539,7 @@ async function adminBootstrap(req, res) {
     }
 
     const [[{ adminCount }]] = await connection.query(
-      "SELECT COUNT(*) AS adminCount FROM users WHERE role = 'Admin' AND municipality_id = ?",
+      "SELECT COUNT(*) AS adminCount FROM users WHERE role = 'Admin' AND admin_scope = 'Municipality' AND municipality_id = ?",
       [municipalityId]
     );
     if (adminCount > 0) {
@@ -458,7 +551,7 @@ async function adminBootstrap(req, res) {
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
     const [result] = await connection.query(
-      "INSERT INTO users (full_name, email, password, role, municipality_id) VALUES (?, ?, ?, 'Admin', ?)",
+      "INSERT INTO users (full_name, email, password, role, admin_scope, municipality_id) VALUES (?, ?, ?, 'Admin', 'Municipality', ?)",
       [full_name, email, hashedPassword, municipalityId]
     );
 
@@ -466,20 +559,19 @@ async function adminBootstrap(req, res) {
 
     return res.status(201).json({
       success: true,
-      message: "Admin account created.",
-      user: { user_id: result.insertId, full_name, email, role: "Admin", municipality_id: municipalityId },
+      message: "Municipality Admin account created.",
+      user: {
+        user_id: result.insertId, full_name, email, role: "Admin",
+        admin_scope: "Municipality", municipality_id: municipalityId,
+      },
     });
   } catch (err) {
     await connection.rollback();
-    // A DB trigger (migration_municipality_admin_trigger.sql) throws SQLSTATE
-    // 45000 if a race ever let two bootstrap calls both pass the COUNT(*)
-    // check above — this is the last line of defense against a second Admin
-    // for the same Municipality.
     if (err && err.sqlState === "45000") {
       return res.status(409).json({ success: false, error: "This municipality already has an Admin account." });
     }
-    console.error("Admin bootstrap error:", err);
-    return res.status(500).json({ success: false, error: "Failed to create admin account" });
+    console.error("Create municipality admin error:", err);
+    return res.status(500).json({ success: false, error: "Failed to create municipality admin account" });
   } finally {
     connection.release();
   }
@@ -520,4 +612,7 @@ async function changePassword(req, res) {
   }
 }
 
-module.exports = { register, login, staffRegister, staffLogin, adminBootstrap, changePassword };
+module.exports = {
+  register, login, staffRegister, staffLogin,
+  adminBootstrap, createMunicipalityAdmin, changePassword,
+};

@@ -35,6 +35,27 @@ function requireRole(...allowedRoles) {
   };
 }
 
+// requireAdminScope("Province" | "Municipality") — stack AFTER
+// requireRole("Admin"). There are two kinds of Admin: a Province Admin
+// (province_id set, oversees every Municipality in that Province) and a
+// Municipality Admin (municipality_id set, runs one Municipality day to
+// day). Routes built for one scope must reject the other outright rather
+// than silently running a query against a NULL id and returning nothing.
+function requireAdminScope(scope) {
+  return function (req, res, next) {
+    if (!req.user || req.user.role !== "Admin") {
+      return res.status(401).json({ success: false, error: "Not authenticated" });
+    }
+    if (req.user.admin_scope !== scope) {
+      return res.status(403).json({
+        success: false,
+        error: `This action requires a ${scope} Admin account`,
+      });
+    }
+    next();
+  };
+}
+
 // requireApprovedOfficer — a JWT is only re-checked against the DB here,
 // not on every request in the app, because this is specifically the gate
 // that has to react immediately if an Admin suspends an Officer mid-session:
@@ -69,4 +90,4 @@ async function requireApprovedOfficer(req, res, next) {
   }
 }
 
-module.exports = { verifyToken, requireRole, requireApprovedOfficer };
+module.exports = { verifyToken, requireRole, requireAdminScope, requireApprovedOfficer };

@@ -147,7 +147,43 @@ async function updateMyMunicipality(req, res) {
   }
 }
 
+// GET /api/admin/province — the calling Province Admin's own Province, with
+// every Municipality onboarded within it and that Municipality's Admin (if
+// one has been created yet) — feeds the Province Admin's oversight dashboard.
+async function getMyProvince(req, res) {
+  try {
+    const [provinceRows] = await pool.query(
+      "SELECT province_id, name, nepali_name FROM provinces WHERE province_id = ?",
+      [req.user.province_id]
+    );
+    if (provinceRows.length === 0) {
+      return res.status(404).json({ success: false, error: "Province not found" });
+    }
+
+    const [municipalityRows] = await pool.query(
+      `SELECT m.municipality_id, m.office_address, m.contact_email, m.contact_phone,
+              lb.local_body_id, lb.name AS local_body_name, t.name AS type_name,
+              d.district_id, d.name AS district_name,
+              a.user_id AS admin_user_id, a.full_name AS admin_name, a.email AS admin_email
+       FROM municipalities m
+       JOIN local_bodies lb ON m.local_body_id = lb.local_body_id
+       JOIN local_level_types t ON lb.local_level_type_id = t.local_level_type_id
+       JOIN districts d ON lb.district_id = d.district_id
+       LEFT JOIN users a
+         ON a.municipality_id = m.municipality_id AND a.role = 'Admin' AND a.admin_scope = 'Municipality'
+       WHERE d.province_id = ?
+       ORDER BY d.name ASC, lb.name ASC`,
+      [req.user.province_id]
+    );
+
+    res.json({ success: true, province: provinceRows[0], municipalities: municipalityRows });
+  } catch (err) {
+    console.error("Get my province error:", err);
+    res.status(500).json({ success: false, error: "Failed to fetch province overview" });
+  }
+}
+
 module.exports = {
   listProvinces, listDistricts, listLocalBodies, listMunicipalities,
-  getMyMunicipality, updateMyMunicipality,
+  getMyMunicipality, updateMyMunicipality, getMyProvince,
 };

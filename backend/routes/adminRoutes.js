@@ -20,7 +20,7 @@ const {
   getSettings, updateSettings,
 } = require("../controllers/settingsController");
 
-const { getMyMunicipality, updateMyMunicipality } = require("../controllers/locationController");
+const { getMyMunicipality, updateMyMunicipality, getMyProvince } = require("../controllers/locationController");
 
 const { adminListApplications, assignApplication } = require("../controllers/certificateController");
 const {
@@ -28,73 +28,89 @@ const {
 } = require("../controllers/complaintController");
 const { getSystemReports } = require("../controllers/reportsController");
 
-const { verifyToken, requireRole } = require("../middleware/authMiddleware");
+const { verifyToken, requireRole, requireAdminScope } = require("../middleware/authMiddleware");
+const { createMunicipalityAdmin } = require("../controllers/authController");
 
-// Every route below is Admin-only — this file is the entire surface of
-// "Full system access" from the access-control spec. Officer never appears
-// in any requireRole() call here.
+// Every route below (other than /municipality-admins) is scoped to a
+// Municipality Admin — this file is the entire surface of "Full system
+// access" from the access-control spec, but only over that Admin's own
+// Municipality. A Province Admin's token is rejected here outright rather
+// than being allowed to run these queries against a NULL municipality_id.
+// Officer never appears in any requireRole() call here.
 
 // Dashboard overview
-router.get("/stats", verifyToken, requireRole("Admin"), getAdminStats);
+router.get("/stats", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), getAdminStats);
+
+// Province Admin's own privileges — oversee every Municipality onboarded in
+// their Province, and onboard a new Local Body by creating its one
+// Municipality Admin account.
+router.get("/province", verifyToken, requireRole("Admin"), requireAdminScope("Province"), getMyProvince);
+router.post(
+  "/municipality-admins",
+  verifyToken,
+  requireRole("Admin"),
+  requireAdminScope("Province"),
+  createMunicipalityAdmin
+);
 
 // Officer verification — the ONLY place officer_status can change
-router.get("/officers", verifyToken, requireRole("Admin"), listOfficers);
-router.get("/officers/:id", verifyToken, requireRole("Admin"), getOfficerDetail);
-router.patch("/officers/:id/approve", verifyToken, requireRole("Admin"), approveOfficer);
-router.patch("/officers/:id/reject", verifyToken, requireRole("Admin"), rejectOfficer);
-router.patch("/officers/:id/suspend", verifyToken, requireRole("Admin"), suspendOfficer);
-router.patch("/officers/:id/activate", verifyToken, requireRole("Admin"), activateOfficer);
+router.get("/officers", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), listOfficers);
+router.get("/officers/:id", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), getOfficerDetail);
+router.patch("/officers/:id/approve", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), approveOfficer);
+router.patch("/officers/:id/reject", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), rejectOfficer);
+router.patch("/officers/:id/suspend", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), suspendOfficer);
+router.patch("/officers/:id/activate", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), activateOfficer);
 
 // Citizen management
-router.get("/citizens", verifyToken, requireRole("Admin"), getCitizens);
-router.get("/citizens/:id", verifyToken, requireRole("Admin"), getCitizenDetail);
+router.get("/citizens", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), getCitizens);
+router.get("/citizens/:id", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), getCitizenDetail);
 
 // Generic account activate/deactivate
-router.patch("/users/:id/status", verifyToken, requireRole("Admin"), updateUserStatus);
+router.patch("/users/:id/status", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), updateUserStatus);
 
 // The Admin's own Municipality — Province name+id, District, Local Body, and
 // editable contact details
-router.get("/municipality", verifyToken, requireRole("Admin"), getMyMunicipality);
-router.patch("/municipality", verifyToken, requireRole("Admin"), updateMyMunicipality);
+router.get("/municipality", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), getMyMunicipality);
+router.patch("/municipality", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), updateMyMunicipality);
 
 // Municipal services
-router.get("/services", verifyToken, requireRole("Admin"), listServices);
-router.post("/services", verifyToken, requireRole("Admin"), createService);
-router.patch("/services/:id", verifyToken, requireRole("Admin"), updateService);
-router.delete("/services/:id", verifyToken, requireRole("Admin"), deleteService);
+router.get("/services", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), listServices);
+router.post("/services", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), createService);
+router.patch("/services/:id", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), updateService);
+router.delete("/services/:id", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), deleteService);
 
 // Departments (management view — see also the public GET /api/departments)
-router.get("/departments", verifyToken, requireRole("Admin"), listDepartments);
-router.post("/departments", verifyToken, requireRole("Admin"), createDepartment);
-router.patch("/departments/:id", verifyToken, requireRole("Admin"), updateDepartment);
-router.delete("/departments/:id", verifyToken, requireRole("Admin"), deleteDepartment);
+router.get("/departments", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), listDepartments);
+router.post("/departments", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), createDepartment);
+router.patch("/departments/:id", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), updateDepartment);
+router.delete("/departments/:id", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), deleteDepartment);
 
 // System settings
-router.get("/settings", verifyToken, requireRole("Admin"), getSettings);
-router.patch("/settings", verifyToken, requireRole("Admin"), updateSettings);
+router.get("/settings", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), getSettings);
+router.patch("/settings", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), updateSettings);
 
 // Application management
-router.get("/applications", verifyToken, requireRole("Admin"), adminListApplications);
-router.patch("/applications/:id/assign", verifyToken, requireRole("Admin"), assignApplication);
+router.get("/applications", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), adminListApplications);
+router.patch("/applications/:id/assign", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), assignApplication);
 
 // Complaint management
-router.get("/complaints", verifyToken, requireRole("Admin"), adminListComplaints);
-router.patch("/complaints/:id/assign", verifyToken, requireRole("Admin"), assignComplaint);
-router.patch("/complaints/:id/escalate", verifyToken, requireRole("Admin"), escalateComplaint);
-router.patch("/complaints/:id/close", verifyToken, requireRole("Admin"), closeComplaint);
+router.get("/complaints", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), adminListComplaints);
+router.patch("/complaints/:id/assign", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), assignComplaint);
+router.patch("/complaints/:id/escalate", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), escalateComplaint);
+router.patch("/complaints/:id/close", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), closeComplaint);
 
 // Announcements — GET here is the Admin's own Municipality's notices
 // (the public, unauthenticated equivalent lives in routes/noticeRoutes.js)
-router.get("/notices", verifyToken, requireRole("Admin"), getMyMunicipalityNotices);
-router.post("/notices", verifyToken, requireRole("Admin"), createNotice);
-router.patch("/notices/:id", verifyToken, requireRole("Admin"), updateNotice);
-router.delete("/notices/:id", verifyToken, requireRole("Admin"), deleteNotice);
+router.get("/notices", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), getMyMunicipalityNotices);
+router.post("/notices", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), createNotice);
+router.patch("/notices/:id", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), updateNotice);
+router.delete("/notices/:id", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), deleteNotice);
 
 // Reports & analytics — system-wide, never exposed to Officer
-router.get("/reports", verifyToken, requireRole("Admin"), getSystemReports);
+router.get("/reports", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), getSystemReports);
 
 // Admin's own profile
-router.get("/profile", verifyToken, requireRole("Admin"), getAdminProfile);
-router.patch("/profile", verifyToken, requireRole("Admin"), updateAdminProfile);
+router.get("/profile", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), getAdminProfile);
+router.patch("/profile", verifyToken, requireRole("Admin"), requireAdminScope("Municipality"), updateAdminProfile);
 
 module.exports = router;
