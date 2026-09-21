@@ -49,4 +49,44 @@ async function getMyPayments(req, res) {
   }
 }
 
-module.exports = { getMyRequests, getMyStats, getMyPayments };
+// GET /api/citizen/profile — my own account details
+async function getProfile(req, res) {
+  try {
+    const [rows] = await pool.query(
+      `SELECT user_id, full_name, email, phone, address, citizenship_no, created_at
+       FROM users WHERE user_id = ?`,
+      [req.user.user_id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, error: "Profile not found" });
+    }
+    res.json({ success: true, profile: rows[0] });
+  } catch (err) {
+    console.error("Get citizen profile error:", err);
+    res.status(500).json({ success: false, error: "Failed to fetch profile" });
+  }
+}
+
+// PATCH /api/citizen/profile — full_name/phone/address/citizenship_no only.
+// email/role are never editable here.
+async function updateProfile(req, res) {
+  try {
+    const { full_name, phone, address, citizenship_no } = req.body;
+
+    if (!full_name) {
+      return res.status(400).json({ success: false, error: "full_name is required" });
+    }
+
+    await pool.query(
+      "UPDATE users SET full_name = ?, phone = ?, address = ?, citizenship_no = ? WHERE user_id = ?",
+      [full_name, phone || null, address || null, citizenship_no || null, req.user.user_id]
+    );
+
+    res.json({ success: true, message: "Profile updated" });
+  } catch (err) {
+    console.error("Update citizen profile error:", err);
+    res.status(500).json({ success: false, error: "Failed to update profile" });
+  }
+}
+
+module.exports = { getMyRequests, getMyStats, getMyPayments, getProfile, updateProfile };

@@ -17,6 +17,7 @@ import ApplyCertificate from "./pages/citizen/ApplyCertificate";
 import TaxPayment from "./pages/citizen/TaxPayment";
 import EsewaTaxPayment from "./pages/citizen/EsewaTaxPayment";
 import Complaints from "./pages/citizen/Complaints";
+import CitizenProfile from "./pages/citizen/Profile";
 
 import BusinessDashboard from "./pages/business/BusinessDashboard";
 import MyProducts from "./pages/business/MyProducts";
@@ -78,6 +79,9 @@ export default function App() {
           } />
           <Route path="/citizen/complaints" element={
             <ProtectedRoute allowedRoles={["Citizen"]}><Complaints /></ProtectedRoute>
+          } />
+          <Route path="/citizen/profile" element={
+            <ProtectedRoute allowedRoles={["Citizen"]}><CitizenProfile /></ProtectedRoute>
           } />
 
           {/* Business */}

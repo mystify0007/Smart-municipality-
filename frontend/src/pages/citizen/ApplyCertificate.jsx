@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import DashboardLayout from "../../components/DashboardLayout";
 import api from "../../api/axios";
 import { useLanguage } from "../../context/LanguageContext";
 
-const CERTIFICATE_TYPES = ["Birth", "Marriage", "Death", "Residence", "Business", "Character"];
+const CERTIFICATE_TYPES = ["Marriage", "Death", "Residence", "Business", "Character"];
 
 export default function ApplyCertificate() {
   const { t } = useLanguage();
@@ -12,6 +13,15 @@ export default function ApplyCertificate() {
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState(null); // { type: 'success'|'error', text }
   const [loading, setLoading] = useState(false);
+  const [hasCitizenship, setHasCitizenship] = useState(null); // null = still checking
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  useEffect(() => {
+    api.get("/citizen/profile")
+      .then((res) => setHasCitizenship(Boolean(res.data.profile.citizenship_no)))
+      .catch(() => setHasCitizenship(false))
+      .finally(() => setProfileLoading(false));
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -37,6 +47,33 @@ export default function ApplyCertificate() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (profileLoading) {
+    return (
+      <DashboardLayout title={t("title.applyCertificate")}>
+        <p className="text-portal-muted text-sm">Loading...</p>
+      </DashboardLayout>
+    );
+  }
+
+  if (!hasCitizenship) {
+    return (
+      <DashboardLayout title={t("title.applyCertificate")}>
+        <div className="max-w-lg bg-portal-panel border border-portal-panel-border rounded-xl p-6">
+          <h3 className="font-medium text-portal-text mb-2">Citizenship number required</h3>
+          <p className="text-sm text-portal-muted mb-4">
+            Add your citizenship number in your profile before applying for a certificate through e-Sifaris.
+          </p>
+          <Link
+            to="/citizen/profile"
+            className="inline-block bg-portal-primary hover:bg-portal-primary-hover text-white font-medium rounded-lg px-4 py-2.5"
+          >
+            Go to My Profile
+          </Link>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   return (

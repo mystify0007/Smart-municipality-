@@ -18,6 +18,7 @@ const NAV_ITEMS = {
     { key: "nav.marketplace", path: "/marketplace" },
     { key: "nav.myCart", path: "/cart" },
     { key: "nav.myOrders", path: "/orders/mine" },
+    { key: "nav.profile", path: "/citizen/profile" },
   ],
   Business: [
     { key: "nav.dashboard", path: "/business/dashboard" },

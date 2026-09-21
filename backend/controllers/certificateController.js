@@ -5,7 +5,7 @@
 const { pool } = require("../config/db");
 const { createNotification } = require("./notificationController");
 
-const VALID_CERTIFICATE_TYPES = ["Birth", "Marriage", "Death", "Residence", "Business", "Character"];
+const VALID_CERTIFICATE_TYPES = ["Marriage", "Death", "Residence", "Business", "Character"];
 
 async function applyForCertificate(req, res) {
   try {
@@ -21,6 +21,18 @@ async function applyForCertificate(req, res) {
         success: false,
         error: `certificate_type must be one of: ${VALID_CERTIFICATE_TYPES.join(", ")}`,
       });
+    }
+
+    // Citizens must have a citizenship number on file before applying for any
+    // certificate (Business accounts identify via PAN/registration instead).
+    if (req.user.role === "Citizen") {
+      const [userRows] = await pool.query("SELECT citizenship_no FROM users WHERE user_id = ?", [userId]);
+      if (userRows.length === 0 || !userRows[0].citizenship_no) {
+        return res.status(400).json({
+          success: false,
+          error: "Add your citizenship number in your profile before applying for a certificate.",
+        });
+      }
     }
 
     const documentPath = req.file ? `/uploads/certificates/${req.file.filename}` : null;
